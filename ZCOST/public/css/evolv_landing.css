@@ -1,0 +1,584 @@
+/* EVOLV Clean Landing Search UI matching Image 2 exactly */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --evolv-primary: #008060;
+  --evolv-primary-hover: #006e52;
+  --evolv-primary-light: #e6f4f1;
+  --evolv-primary-border: #bbf0e5;
+  --evolv-border: #008060;
+  --evolv-bg: #f8fafc;
+  --evolv-text-dark: #111827;
+  --evolv-text-muted: #6b7280;
+  --evolv-font: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Fullscreen Landing View */
+.evolv-landing-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--evolv-bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: var(--evolv-font);
+  z-index: 99999;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.evolv-landing-page.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Isolated Background Glow Orbs */
+.evolv-bg-decorations {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.evolv-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Orb 1: Soft Mint Teal on the left */
+.evolv-bg-orb-1 {
+  width: 320px;
+  height: 320px;
+  left: 5%;
+  top: 20%;
+  background: radial-gradient(circle, rgba(132, 214, 194, 0.45) 0%, rgba(132, 214, 194, 0) 70%);
+  filter: blur(40px);
+}
+
+/* Orb 2: Soft Sky Blue on the right */
+.evolv-bg-orb-2 {
+  width: 290px;
+  height: 290px;
+  right: 8%;
+  top: 25%;
+  background: radial-gradient(circle, rgba(147, 203, 245, 0.45) 0%, rgba(147, 203, 245, 0) 70%);
+  filter: blur(40px);
+}
+
+/* Orb 3: Soft Lavender on bottom-left */
+.evolv-bg-orb-3 {
+  width: 260px;
+  height: 260px;
+  left: 15%;
+  bottom: 12%;
+  background: radial-gradient(circle, rgba(198, 182, 240, 0.35) 0%, rgba(198, 182, 240, 0) 70%);
+  filter: blur(45px);
+}
+
+/* Top Navigation Bar */
+.evolv-navbar {
+  position: relative;
+  z-index: 10;
+  height: 64px;
+  width: 100%;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.evolv-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.evolv-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.evolv-logo-img {
+  height: 36px;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+}
+
+.evolv-logo-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.evolv-logo-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.evolv-logo-text {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: #0f172a;
+}
+
+.evolv-module-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--evolv-primary-light);
+  border: 1px solid var(--evolv-primary-border);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--evolv-primary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.evolv-module-badge:hover {
+  background: #d8f1eb;
+  border-color: #99f6e4;
+  transform: translateY(-1px);
+}
+
+.evolv-module-badge svg {
+  width: 15px;
+  height: 15px;
+  stroke: var(--evolv-primary);
+}
+
+/* User Menu & Dropdown on Right */
+.evolv-nav-right {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.evolv-user-menu-container {
+  position: relative;
+}
+
+.evolv-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 24px;
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.evolv-user-pill:hover {
+  background: #f1f5f9;
+}
+
+.evolv-avatar-wrapper {
+  position: relative;
+  width: 36px;
+  height: 36px;
+}
+
+.evolv-avatar {
+  width: 36px;
+  height: 36px;
+  background: #2563eb;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.2);
+}
+
+.evolv-status-dot {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: 9px;
+  height: 9px;
+  background: #10b981;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+}
+
+.evolv-user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.evolv-user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.evolv-user-role {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9ca3af;
+  letter-spacing: 0.5px;
+}
+
+/* Dropdown Menu */
+.evolv-user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 230px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.12), 0 4px 10px -2px rgba(0, 0, 0, 0.05);
+  padding: 8px;
+  display: none;
+  flex-direction: column;
+  z-index: 1000;
+  animation: evolv-dropdown-in 0.15s ease-out;
+}
+
+.evolv-user-dropdown.show {
+  display: flex;
+}
+
+@keyframes evolv-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.evolv-dropdown-header {
+  padding: 8px 12px 10px;
+}
+
+.evolv-dropdown-user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.evolv-dropdown-user-email {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.evolv-dropdown-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 0 6px;
+}
+
+.evolv-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.evolv-dropdown-item:hover {
+  background: #f8fafc;
+  color: var(--evolv-primary);
+}
+
+.evolv-dropdown-item svg {
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+.evolv-dropdown-item.logout {
+  color: #dc2626;
+  margin-top: 2px;
+}
+
+.evolv-dropdown-item.logout:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* Center Content & Hero Card */
+.evolv-hero-section {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 24px;
+  box-sizing: border-box;
+}
+
+.evolv-search-card {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 46px 54px;
+  max-width: 580px;
+  width: 100%;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.05), 0 2px 6px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.evolv-card-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--evolv-primary);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.evolv-card-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--evolv-text-dark);
+  letter-spacing: -0.6px;
+  margin: 0 0 10px 0;
+  line-height: 1.2;
+}
+
+.evolv-card-subtitle {
+  font-size: 14px;
+  color: var(--evolv-text-muted);
+  line-height: 1.5;
+  margin: 0 0 28px 0;
+}
+
+/* Search Input + Action Button Bar */
+.evolv-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.evolv-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 52px;
+  padding: 0 16px;
+  background: #ffffff;
+  border: 2px solid var(--evolv-border);
+  border-radius: 12px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.evolv-input-wrapper:focus-within {
+  box-shadow: 0 0 0 3px rgba(0, 128, 96, 0.18);
+}
+
+.evolv-input-icon {
+  width: 22px;
+  height: 22px;
+  color: #64748b;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.evolv-input-field {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--evolv-font);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--evolv-text-dark);
+}
+
+.evolv-input-field::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.evolv-submit-btn {
+  width: 52px;
+  height: 52px;
+  background: var(--evolv-primary);
+  border: none;
+  border-radius: 12px;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 128, 96, 0.25);
+}
+
+.evolv-submit-btn:hover {
+  background: var(--evolv-primary-hover);
+  transform: translateY(-1px);
+}
+
+.evolv-submit-btn:active {
+  transform: translateY(1px);
+}
+
+.evolv-submit-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke: #ffffff;
+}
+
+.evolv-submit-btn.loading svg {
+  animation: evolv-spin 0.8s linear infinite;
+}
+
+@keyframes evolv-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Subtle Preset Hints */
+.evolv-quick-chips {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.evolv-chip-label {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.evolv-chip-btn {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.evolv-chip-btn:hover {
+  background: var(--evolv-primary-light);
+  color: var(--evolv-primary);
+  border-color: var(--evolv-primary-border);
+}
+
+/* Error Alert */
+.evolv-error-banner {
+  display: none;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 14px;
+  text-align: left;
+}
+
+.evolv-error-banner.active {
+  display: block;
+}
+
+/* Bottom Footer Bar */
+.evolv-footer {
+  position: relative;
+  z-index: 10;
+  height: 42px;
+  width: 100%;
+  border-top: 1px solid #f1f5f9;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #64748b;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.evolv-footer-center {
+  font-weight: 500;
+  color: #475569;
+}
+
+.evolv-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.evolv-rfc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: #059669;
+}
+
+.evolv-rfc-dot {
+  width: 7px;
+  height: 7px;
+  background: #10b981;
+  border-radius: 50%;
+  display: inline-block;
+}

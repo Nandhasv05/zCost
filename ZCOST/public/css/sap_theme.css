@@ -1,0 +1,1400 @@
+/* ==========================================================================
+   EVOLV DUAL-PANE COSTING STUDIO - DESIGN SYSTEM
+   High-Efficiency Split-Screen: Left Parameters & Right Full-Height ALV Studio
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Brand Palette */
+  --studio-primary: #008060;
+  --studio-primary-hover: #006e52;
+  --studio-primary-dark: #004c3f;
+  --studio-primary-light: #e6f4f1;
+  --studio-primary-subtle: #f0fdf9;
+  --studio-primary-border: #a7f3d0;
+
+  /* Surfaces & Backgrounds */
+  --studio-canvas-bg: #f8fafc;
+  --studio-surface: #ffffff;
+  --studio-sidebar-bg: #ffffff;
+  --studio-border: #e2e8f0;
+  --studio-border-focus: #008060;
+
+  /* Typography Colors */
+  --studio-text-hero: #0f172a;
+  --studio-text-main: #1e293b;
+  --studio-text-muted: #64748b;
+  --studio-text-dim: #94a3b8;
+
+  /* Status Colors */
+  --studio-approved: #10b981;
+  --studio-approved-bg: #ecfdf5;
+  --studio-approved-border: #a7f3d0;
+  --studio-pending: #f59e0b;
+  --studio-pending-bg: #fffbeb;
+  --studio-pending-border: #fde68a;
+  --studio-danger: #ef4444;
+
+  /* Typography */
+  --studio-font: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --studio-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* Shadows */
+  --studio-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  --studio-shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+
+  /* Animation Timings */
+  --studio-transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================================================
+   Global Reset
+   ========================================================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body.sap-body {
+  font-family: var(--studio-font);
+  background-color: var(--studio-canvas-bg);
+  color: var(--studio-text-main);
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* Sleek Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hidden backwards-compatibility hooks */
+.sap-titlebar,
+.sap-menubar,
+.sap-toolbar {
+  display: none !important;
+}
+
+/* ==========================================================================
+   Main Split-Screen Window Container
+   ========================================================================== */
+.sap-window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--studio-canvas-bg);
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   1. Studio Top Sticky Header Bar (48px)
+   ========================================================================== */
+.studio-navbar {
+  height: 48px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--studio-border);
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 50;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.studio-nav-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studio-logo-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.studio-logo-img {
+  height: 26px;
+  max-width: 110px;
+  object-fit: contain;
+}
+
+.studio-nav-divider {
+  width: 1px;
+  height: 18px;
+  background-color: var(--studio-border);
+}
+
+.studio-home-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: var(--studio-text-main);
+  border: 1px solid var(--studio-border);
+  text-decoration: none;
+  transition: var(--studio-transition);
+}
+
+.studio-home-btn:hover {
+  background: var(--studio-primary-light);
+  border-color: var(--studio-primary-border);
+  color: var(--studio-primary);
+  transform: translateY(-1px);
+}
+
+.studio-home-btn svg {
+  flex-shrink: 0;
+}
+
+.studio-page-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--studio-text-hero);
+  letter-spacing: -0.2px;
+}
+
+.studio-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Studio Top Nav Search Box */
+.studio-nav-search {
+  display: flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid var(--studio-border);
+  border-radius: 8px;
+  padding: 3px 6px 3px 10px;
+  gap: 8px;
+  transition: var(--studio-transition);
+  width: 220px;
+}
+
+.studio-nav-search:focus-within {
+  background: #ffffff;
+  border-color: var(--studio-primary);
+  box-shadow: 0 0 0 2px rgba(0, 128, 96, 0.12);
+  width: 250px;
+}
+
+.studio-nav-search svg {
+  color: var(--studio-text-muted);
+  flex-shrink: 0;
+}
+
+.studio-nav-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--studio-font);
+  font-size: 12px;
+  color: var(--studio-text-hero);
+  width: 100%;
+}
+
+.studio-nav-search-input::placeholder {
+  color: var(--studio-text-dim);
+}
+
+.studio-nav-search-btn {
+  border: none;
+  background: #ffffff;
+  border: 1px solid var(--studio-border);
+  border-radius: 5px;
+  padding: 3px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--studio-text-muted);
+  transition: var(--studio-transition);
+}
+
+.studio-nav-search-btn:hover {
+  background: var(--studio-primary);
+  border-color: var(--studio-primary);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   2. Executive Compact Command Header & Action Bar
+   ========================================================================== */
+.studio-command-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--studio-border);
+  padding: 8px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+}
+
+.studio-header-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.studio-header-left-cluster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.studio-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-main-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--studio-text-hero);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.sap-screen-title,
+.studio-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sap-screen-title.approved,
+.studio-status-pill.approved {
+  background: var(--studio-approved-bg);
+  color: #065f46;
+  border: 1px solid var(--studio-approved-border);
+}
+
+.sap-screen-title.not-approved,
+.studio-status-pill.not-approved {
+  background: var(--studio-pending-bg);
+  color: #92400e;
+  border: 1px solid var(--studio-pending-border);
+}
+
+.studio-meta-divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--studio-border);
+}
+
+/* Metadata Parameters Strip */
+.studio-meta-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.studio-chip-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+
+.studio-chip-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--studio-text-muted);
+  letter-spacing: 0.2px;
+}
+
+.studio-chip-input {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-family: var(--studio-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--studio-text-hero);
+  text-align: center;
+  outline: none;
+  transition: var(--studio-transition);
+}
+
+.studio-chip-input:focus {
+  border-color: var(--studio-primary);
+  box-shadow: 0 0 0 2px rgba(0, 128, 96, 0.15);
+}
+
+.studio-checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--studio-text-main);
+  cursor: pointer;
+  user-select: none;
+}
+
+.studio-checkbox-wrapper input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--studio-primary);
+  cursor: pointer;
+}
+
+/* Action Buttons */
+.studio-action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.studio-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--studio-font);
+  cursor: pointer;
+  transition: var(--studio-transition);
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.studio-btn.icon-only {
+  padding: 5px 8px;
+}
+
+.studio-btn svg {
+  flex-shrink: 0;
+}
+
+.studio-btn:hover {
+  transform: translateY(-1px);
+}
+
+.studio-btn:active {
+  transform: translateY(0);
+}
+
+.studio-btn-save {
+  background: linear-gradient(135deg, var(--studio-primary) 0%, #006048 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 128, 96, 0.25);
+  font-size: 11px;
+  padding: 5px 12px;
+}
+
+.studio-btn-save:hover {
+  background: linear-gradient(135deg, #00936f 0%, #006e52 100%);
+  box-shadow: 0 3px 8px rgba(0, 128, 96, 0.35);
+}
+
+.studio-btn-approve {
+  background: #ffffff;
+  border: 1.5px solid var(--studio-approved);
+  color: #065f46;
+}
+
+.studio-btn-approve:hover {
+  background: var(--studio-approved-bg);
+}
+
+.studio-btn-edit {
+  background: #ffffff;
+  border: 1.5px solid #0284c7;
+  color: #0369a1;
+}
+
+.studio-btn-edit.active,
+.studio-btn-edit:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.studio-btn-outline {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: var(--studio-text-main);
+}
+
+.studio-btn-outline:hover {
+  background: #f8fafc;
+  color: var(--studio-text-hero);
+}
+
+/* ==========================================================================
+   3. Modern Split-Screen Dual-Pane Studio Layout
+   ========================================================================== */
+.studio-split-workspace {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--studio-canvas-bg);
+}
+
+/* --------------------------------------------------------------------------
+   LEFT STICKY PANEL: Parameters & Real-Time Pricing Studio (370px)
+   -------------------------------------------------------------------------- */
+.studio-split-sidebar {
+  width: 375px;
+  min-width: 340px;
+  max-width: 420px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-right: 1px solid var(--studio-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 28px;
+  overflow-y: auto;
+  box-shadow: 2px 0 8px rgba(15, 23, 42, 0.03);
+  z-index: 5;
+}
+
+/* Hero Selling Price & Quote Card */
+.calc-hero-card {
+  background: linear-gradient(145deg, #f0fdf9 0%, #e6f7f2 100%);
+  border: 1.5px solid #a7f3d0;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 4px 14px rgba(0, 128, 96, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.calc-hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--studio-primary) 0%, #10b981 100%);
+}
+
+.calc-hero-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calc-hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--studio-primary-dark);
+}
+
+.calc-hero-tag svg {
+  color: var(--studio-primary);
+}
+
+.calc-quote-badge {
+  font-family: var(--studio-mono);
+  font-size: 10px;
+  font-weight: 700;
+  background: #ffffff;
+  color: var(--studio-primary-dark);
+  border: 1px solid var(--studio-primary-border);
+  padding: 2px 7px;
+  border-radius: 12px;
+}
+
+.calc-hero-main-price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.calc-price-currency {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--studio-primary-dark);
+  font-family: var(--studio-mono);
+}
+
+.calc-price-inr {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--studio-primary-dark);
+  font-family: var(--studio-mono);
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.calc-price-fx {
+  margin-left: auto;
+  font-family: var(--studio-mono);
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.calc-hero-chips {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.calc-mini-chip {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(167, 243, 208, 0.7);
+  border-radius: 6px;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.calc-mini-chip .chip-lbl {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #047857;
+  letter-spacing: 0.2px;
+}
+
+.calc-mini-chip strong {
+  font-family: var(--studio-mono);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #064e3b;
+}
+
+/* Category Mini Direct Cost Jumpers */
+.calc-direct-cost-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(167, 243, 208, 0.9);
+}
+
+.cost-pill-jump {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: var(--studio-transition);
+}
+
+.cost-pill-jump:hover {
+  border-color: var(--studio-primary);
+  background: #f0fdf9;
+  transform: translateY(-1px);
+}
+
+.cost-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-blue { background: #2563eb; }
+.dot-amber { background: #d97706; }
+.dot-green { background: #059669; }
+
+.cost-name {
+  font-weight: 700;
+  color: #64748b;
+}
+
+.cost-pill-jump strong {
+  font-family: var(--studio-mono);
+  font-weight: 700;
+  color: var(--studio-text-hero);
+  margin-left: auto;
+  font-size: 9.5px;
+}
+
+/* Quick Specs Strip */
+.calc-specs-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  padding: 6px 8px;
+}
+
+.spec-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: center;
+}
+
+.spec-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.2px;
+}
+
+.spec-cell strong {
+  font-family: var(--studio-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--studio-text-hero);
+}
+
+/* Studio Parameters Stack */
+.studio-params-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #475569;
+  padding: 4px 0 2px;
+}
+
+.sidebar-section-title svg {
+  color: var(--studio-primary);
+}
+
+/* --------------------------------------------------------------------------
+   RIGHT STAGE PANEL: Full-Height ALV Data Studio (Flex 1)
+   -------------------------------------------------------------------------- */
+.studio-split-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--studio-canvas-bg);
+}
+
+.stage-nav-bar {
+  height: 42px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--studio-border);
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 4;
+}
+
+.stage-tabs-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stage-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--studio-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--studio-transition);
+}
+
+.stage-nav-tab:hover {
+  background: #f1f5f9;
+  color: var(--studio-text-hero);
+}
+
+.stage-nav-tab.active {
+  background: var(--studio-primary-light);
+  border-color: var(--studio-primary-border);
+  color: var(--studio-primary);
+  font-weight: 700;
+}
+
+.stage-badge {
+  font-family: var(--studio-mono);
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--studio-primary);
+  border: 1px solid var(--studio-primary-border);
+}
+
+.badge-blue {
+  color: #1e40af;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.badge-amber {
+  color: #92400e;
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.badge-green {
+  color: #065f46;
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+
+.stage-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stage-hint-text {
+  font-size: 11px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.stage-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 18px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+@media (max-width: 1024px) {
+  .studio-split-workspace {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .studio-split-sidebar {
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--studio-border);
+  }
+}
+
+.studio-content-section {
+  display: block;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* ==========================================================================
+   5. Authentic Colorful SAP ALV Table Grid & Animations
+   ========================================================================== */
+.studio-table-card {
+  background: #ffffff;
+  border: 1px solid var(--studio-border);
+  border-radius: 9px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.02);
+  flex-shrink: 0;
+  width: 100%;
+  overflow: visible;
+  transition: var(--studio-transition);
+  animation: studioFadeIn 0.25s ease-out;
+}
+
+/* Individual Table Color Accents Matching SAP GUI */
+#section-fabric {
+  border-top: 3.5px solid #2563eb;
+}
+
+#section-fabric .studio-table-header {
+  background: linear-gradient(90deg, #eff6ff 0%, #ffffff 100%);
+}
+
+#section-fabric .studio-table-badge {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+#section-trim {
+  border-top: 3.5px solid #d97706;
+}
+
+#section-trim .studio-table-header {
+  background: linear-gradient(90deg, #fffbeb 0%, #ffffff 100%);
+}
+
+#section-trim .studio-table-badge {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+#section-packing {
+  border-top: 3.5px solid #059669;
+}
+
+#section-packing .studio-table-header {
+  background: linear-gradient(90deg, #ecfdf5 0%, #ffffff 100%);
+}
+
+#section-packing .studio-table-badge {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.studio-table-header {
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--studio-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.studio-table-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-table-title h3 {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--studio-text-hero);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: -0.1px;
+}
+
+.studio-table-badge {
+  font-family: var(--studio-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+}
+
+.studio-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.studio-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--studio-transition);
+}
+
+.studio-tool-btn:hover {
+  background: var(--studio-primary-light);
+  border-color: var(--studio-primary);
+  color: var(--studio-primary);
+  transform: translateY(-1px);
+}
+
+/* ALV Modern Table Grid */
+.sap-table-container {
+  overflow-x: auto;
+  overflow-y: visible;
+  width: 100%;
+  border-radius: 0 0 9px 9px;
+}
+
+.sap-alv-table {
+  width: 100%;
+  min-width: 1250px;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  text-align: left;
+}
+
+/* SAP Blue Gradient Header */
+.sap-alv-table thead tr {
+  background: linear-gradient(180deg, #edf5fb 0%, #dcecf8 100%);
+  border-bottom: 2px solid #b3d4ed;
+}
+
+.sap-alv-table th {
+  padding: 6px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+  color: #1e3a5f;
+  white-space: nowrap;
+  border-right: 1px solid #d4e5f2;
+  user-select: none;
+}
+
+/* Row Entrance Slide Animation */
+@keyframes alvRowSlide {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sap-alv-table tbody tr {
+  border-bottom: 1px solid #eef4f9;
+  animation: alvRowSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+/* SAP Alternating Zebra Rows */
+.sap-alv-table tbody tr:nth-child(even) {
+  background-color: #ffffff;
+}
+
+.sap-alv-table tbody tr:nth-child(odd) {
+  background-color: #f6fafd;
+}
+
+/* Interactive Hover Row with Glowing Accent Edge */
+.sap-alv-table tbody tr:hover {
+  background-color: #e8f3fc !important;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
+.sap-alv-table td {
+  padding: 4px 7px;
+  color: var(--studio-text-main);
+  border-right: 1px solid #edf4f9;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Alignment utilities */
+.col-center { text-align: center; }
+.col-num {
+  text-align: right;
+  font-family: var(--studio-mono);
+  font-weight: 600;
+}
+
+/* Authentic SAP Color Highlights (From User's Screenshots) */
+.cell-coral,
+.cell-coral input {
+  color: #e11d48 !important;
+  font-weight: 700 !important;
+}
+
+.cell-blue,
+.cell-blue input {
+  color: #2563eb !important;
+  font-weight: 700 !important;
+  font-family: var(--studio-mono);
+}
+
+.cell-dark {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  font-family: var(--studio-mono);
+}
+
+.cell-cyan {
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+  font-family: var(--studio-mono);
+}
+
+.cell-amber,
+.cell-amber input {
+  color: #d97706 !important;
+  font-weight: 700 !important;
+  font-family: var(--studio-mono);
+}
+
+.cell-fin,
+.cell-fin input {
+  color: #0d9488 !important;
+  font-weight: 700 !important;
+  font-family: var(--studio-mono);
+}
+
+.cell-curr-badge {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  font-weight: 800 !important;
+  border: 1px solid #bfdbfe !important;
+  border-radius: 4px;
+}
+
+.sl-col {
+  font-weight: 800;
+  color: #64748b;
+  font-family: var(--studio-mono);
+  background: #f8fafc;
+}
+
+/* Item Dropdown Wrap */
+.cell-dropdown-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cell-arrow {
+  color: #2563eb;
+  font-size: 8px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* Cell Inputs */
+.sap-table-cell-input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 2px 4px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: inherit;
+  color: inherit;
+  border-radius: 4px;
+  transition: var(--studio-transition);
+}
+
+.sap-table-cell-input:focus {
+  background: #ffffff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18) !important;
+  outline: none;
+}
+
+.sap-table-cell-input:not([readonly]) {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+/* Footer Totals Row (Matching SAP GUI) */
+.sap-alv-table tfoot tr {
+  background: linear-gradient(180deg, #edf4fa 0%, #dfeaf4 100%);
+  border-top: 2px solid #b3d4ed;
+  font-weight: 800;
+}
+
+.sap-alv-table tfoot td {
+  padding: 6px 8px;
+  color: #0f172a;
+  font-size: 11.5px;
+  font-family: var(--studio-mono);
+}
+
+#tot-cost-fabric, #tot-cost-trim, #tot-cost-packing {
+  color: #2563eb;
+}
+
+#tot-inr-fabric, #tot-inr-trim, #tot-inr-packing {
+  color: #0f172a;
+}
+
+#tot-fr-fabric, #tot-fr-trim, #tot-fr-packing {
+  color: #2563eb;
+}
+
+#tot-fin-fabric, #tot-fin-trim, #tot-fin-packing {
+  color: #0d9488;
+}
+
+/* ==========================================================================
+   7. Parameters & Margins Studio Cards
+   ========================================================================== */
+
+/* Parameter Cards with Themed Accents */
+.studio-param-card {
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: var(--studio-transition);
+  border: 1px solid var(--studio-border);
+}
+
+.studio-param-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+/* Card 1: Production Machines */
+.studio-param-card:nth-child(1) {
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+  border-top: 3px solid #059669;
+}
+
+/* Card 2: Making & Overheads */
+.studio-param-card:nth-child(2) {
+  background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+  border-top: 3px solid #2563eb;
+}
+
+/* Card 3: Markup & Commission */
+.studio-param-card:nth-child(3) {
+  background: linear-gradient(180deg, #faf5ff 0%, #ffffff 100%);
+  border-top: 3px solid #7c3aed;
+}
+
+/* Card 4: Final Pricing (Hero) */
+.studio-param-card:nth-child(4) {
+  background: linear-gradient(180deg, #f0fdf9 0%, #ffffff 100%);
+  border: 1.5px solid #a7f3d0;
+  border-top: 3.5px solid #10b981;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+}
+
+.studio-param-card-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--studio-text-hero);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #eef4f9;
+}
+
+.studio-param-card-title svg {
+  flex-shrink: 0;
+}
+
+.studio-form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.studio-form-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.studio-form-label.highlight {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.studio-form-input {
+  width: 95px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 2.5px 5px;
+  font-family: var(--studio-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--studio-text-hero);
+  text-align: right;
+  outline: none;
+  transition: var(--studio-transition);
+}
+
+.studio-form-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.studio-form-input:not([readonly]) {
+  background: #ffffff;
+}
+
+.studio-form-input.calc-sellprice {
+  font-weight: 800;
+  font-size: 13px;
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+/* ==========================================================================
+   3. Studio Toast & Notifications
+   ========================================================================== */
+.sap-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 999999;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sap-toast.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.sap-toast.error {
+  background: #dc2626;
+}
+
+/* ==========================================================================
+   4. Studio Status Bar (Bottom 28px)
+   ========================================================================== */
+.studio-statusbar {
+  height: 28px;
+  background: #ffffff;
+  border-top: 1px solid var(--studio-border);
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--studio-text-muted);
+  flex-shrink: 0;
+}
+
+.studio-status-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.studio-status-icon {
+  width: 12px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+.studio-status-icon.info {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.studio-status-icon.error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.studio-status-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-sys-chip {
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: var(--studio-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* Animations */
+@keyframes studioFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animated-fade-in {
+  animation: studioFadeIn 0.2s ease-out;
+}
