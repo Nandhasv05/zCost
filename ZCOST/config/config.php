@@ -25,7 +25,7 @@ return [
 
     'defaults' => [
         'vbeln' => '0022002311',
-        'posnr' => '000010',
+        'posnr' => '000020',
         'expand' => 'to_Fabric,to_Trim,to_Special,to_Packing',
     ],
 ];

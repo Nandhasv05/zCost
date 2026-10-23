@@ -404,6 +404,7 @@ html, body {
 
 .evolv-input-wrapper {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -447,6 +448,7 @@ html, body {
 }
 
 .evolv-submit-btn {
+  flex-shrink: 0;
   width: 52px;
   height: 52px;
   background: var(--evolv-primary);
@@ -554,6 +556,27 @@ html, body {
   color: #64748b;
   box-sizing: border-box;
   flex-shrink: 0;
+}
+
+@media (max-width: 760px) {
+  .evolv-navbar { height: auto; min-height: 56px; padding: 8px 12px; gap: 8px; }
+  .evolv-user-info { display: none; }
+  .evolv-module-badge { padding: 6px 10px; }
+  .evolv-landing-page { width: 100%; max-width: 100%; }
+  .evolv-hero-section { padding: 16px 12px; min-width: 0; }
+  .evolv-search-card { width: 100%; max-width: 100%; margin: 0; padding: 24px 14px; border-radius: 16px; }
+  .evolv-card-title { font-size: 26px; }
+  .evolv-input-row { width: 100%; }
+  .evolv-input-row { gap: 8px; }
+  .evolv-input-wrapper, .evolv-submit-btn { height: 48px; }
+  .evolv-submit-btn { width: 48px; }
+  .evolv-footer {
+    height: auto;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    text-align: center;
+  }
 }
 
 .evolv-footer-center {

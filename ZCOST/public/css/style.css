@@ -714,31 +714,6 @@ pre.code-block {
   opacity: 1;
 }
 
-/* Print Styles */
-@media print {
-  body {
-    background: #fff !important;
-    color: #000 !important;
-  }
-  .app-header, .header-actions, .tabs-nav, .table-toolbar, .btn, .endpoint-bar {
-    display: none !important;
-  }
-  .content-card, .metric-card, .order-strip, .distribution-container {
-    box-shadow: none !important;
-    border: 1px solid #ccc !important;
-    background: #fff !important;
-    color: #000 !important;
-  }
-  .tab-pane {
-    display: block !important;
-    margin-bottom: 30px !important;
-  }
-  .data-table th, .data-table td {
-    color: #000 !important;
-    border-color: #ddd !important;
-  }
-}
-
 /* Responsive */
 @media (max-width: 900px) {
   .app-header {

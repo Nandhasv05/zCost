@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+if (function_exists('opcache_reset')) { @opcache_reset(); }
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -34,10 +35,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// GET Handler
-$vbeln = $_GET['vbeln'] ?? '3000008';
-$posnr = $_GET['posnr'] ?? '000010';
+// GET or POST query parameter handler
+$vbeln = trim((string)($_GET['vbeln'] ?? $_POST['vbeln'] ?? ''));
+$posnr = trim((string)($_GET['posnr'] ?? $_POST['posnr'] ?? '000020'));
 $cache = isset($_GET['cache']) && ($_GET['cache'] === '1' || $_GET['cache'] === 'true');
+$create = isset($_GET['create']) && ($_GET['create'] === '1' || $_GET['create'] === 'true')
+       || (isset($_GET['action']) && $_GET['action'] === 'create')
+       || (isset($_POST['action']) && $_POST['action'] === 'create');
 
-$result = $client->getCostSheet((string)$vbeln, (string)$posnr, $cache);
+if (empty($vbeln)) {
+    $vbeln = '3000008';
+}
+if (empty($posnr)) {
+    $posnr = '000020';
+}
+
+if ($create) {
+    $result = $client->createQuotationMaster((string)$vbeln, (string)$posnr);
+} else {
+    $result = $client->getCostSheet((string)$vbeln, (string)$posnr, $cache, false);
+}
+
 echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+

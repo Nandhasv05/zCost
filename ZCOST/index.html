@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sales Costing Sheet - SAP GUI</title>
-  <link rel="stylesheet" href="public/css/sap_theme.css">
-  <link rel="stylesheet" href="public/css/evolv_landing.css">
+  <title>Sales Costing Sheet · EVOLV</title>
+  
+  <!-- Fonts & Core Theme Styles -->
+  <link rel="stylesheet" href="public/css/sap_theme.css?v=27">
+
+  <link rel="stylesheet" href="public/css/evolv_landing.css?v=6">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='15' fill='%23003366'/><text x='50' y='68' fill='white' font-size='55' font-family='Arial' font-weight='bold' text-anchor='middle'>SAP</text></svg>">
 </head>
 <body class="sap-body">
@@ -23,21 +26,26 @@
       <div class="studio-nav-divider"></div>
 
       <a href="http://localhost:8888/EVOL/portal_dashboard.php" class="studio-home-btn" title="Back to Portal Dashboard">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
           <polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
       </a>
 
-      <span class="studio-page-title">ZCosting</span>
+      <span class="nav-title-wrap">
+        <span class="studio-page-title">Sales Costing Sheet</span>
+        <span class="sap-screen-title not-approved" id="sap-screen-title">• NOT APPROVED</span>
+      </span>
+      <span id="sap-window-title" style="display:none;"></span>
+      <input type="hidden" id="sap-cmd-input" value="">
 
-      <!-- Hidden hooks to preserve script compatibility -->
+      <!-- Hidden hooks -->
       <span id="studio-so-num" style="display:none;"></span>
       <span id="studio-posnr-num" style="display:none;"></span>
     </div>
 
     <div class="studio-nav-right">
-      <!-- Search Option -->
+      <!-- Search Box Pill -->
       <div class="studio-nav-search" title="Search Quotation">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
           <circle cx="11" cy="11" r="8"/>
@@ -94,456 +102,383 @@
     </div>
   </header>
 
-  <!-- Executive Studio Command Header & Actions -->
-  <!-- Executive Studio Command Header & Actions (Unified Compact Bar) -->
-  <section class="studio-command-header">
-    <div class="studio-header-main-row">
-      <!-- Title + Status + Metadata in one streamlined cluster -->
-      <div class="studio-header-left-cluster">
-        <div class="studio-title-group">
-          <h1 class="studio-main-title">Sales Costing Sheet</h1>
-          <span class="sap-screen-title not-approved" id="sap-screen-title">NOT APPROVED</span>
-          <!-- Hidden hooks for script compatibility -->
-          <span id="sap-window-title" style="display:none;"></span>
-          <input type="hidden" id="sap-cmd-input" value="">
+  <!-- Sheet Command Bar (White Card Container) -->
+  <section class="sheet-command">
+    <div class="sheet-bar">
+      <div class="sheet-tools">
+        <div class="sheet-doc-fields">
+          <label class="sheet-field">
+            <span>SO</span>
+            <input type="text" id="hdr-vbeln" value="" placeholder="Number" onchange="collectHeaderInputs()">
+          </label>
+          <label class="sheet-field">
+            <span>Item</span>
+            <input type="text" id="hdr-posnr" value="000020" onchange="collectHeaderInputs()">
+          </label>
         </div>
 
-        <div class="studio-meta-divider"></div>
-
-        <!-- Inline Metadata Strip -->
-        <div class="studio-meta-strip">
-          <div class="studio-chip-field">
-            <span class="studio-chip-label">SO</span>
-            <input type="text" id="hdr-vbeln" class="studio-chip-input" style="width:90px;" value="" placeholder="SO Number" onchange="collectHeaderInputs()">
-          </div>
-
-          <div class="studio-chip-field">
-            <span class="studio-chip-label">Item</span>
-            <input type="text" id="hdr-posnr" class="studio-chip-input" style="width:65px;" value="000010" placeholder="000010" onchange="collectHeaderInputs()">
-          </div>
-
-          <div class="studio-chip-field">
-            <span class="studio-chip-label">Curr</span>
-            <input type="text" id="hdr-cnv" class="studio-chip-input" style="width:48px; text-transform:uppercase;" value="EUR" onchange="collectHeaderInputs(); renderAll();">
-            <span class="studio-chip-label">Rate</span>
-            <input type="text" id="hdr-cnvf" class="studio-chip-input" style="width:65px;" value="90.00" onchange="collectHeaderInputs(); recalculateAll();">
-          </div>
-
-          <label class="studio-checkbox-wrapper" title="Uniform price for all variants">
+        <div class="sheet-toolbar-meta">
+          <label class="sheet-check" title="Same price for every variant">
             <input type="checkbox" id="hdr-zzall" onchange="collectHeaderInputs()">
-            <span>Uniform price</span>
+            <span>Same price for all variants</span>
+          </label>
+          <label class="sheet-field">
+            <span>Currency</span>
+            <input type="text" id="hdr-cnv" value="USD" maxlength="5" onchange="collectHeaderInputs(); renderAll();">
+          </label>
+          <label class="sheet-field">
+            <span>Rate</span>
+            <input type="text" id="hdr-cnvf" value="87.00" onchange="collectHeaderInputs(); recalculateAll();">
           </label>
         </div>
       </div>
 
-      <!-- Action Group -->
-      <div class="studio-action-group">
-        <button type="button" class="studio-btn studio-btn-edit" id="btn-change" onclick="toggleChangeMode()" title="Toggle Edit / Display Mode">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          <span>Change Mode</span>
-        </button>
-
-        <button type="button" class="studio-btn studio-btn-approve" id="btn-approve" onclick="toggleApprove()" title="Approve / Unapprove Quotation">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <div class="sheet-toolbar-actions">
+        <button type="button" class="studio-btn studio-btn-approve" id="btn-approve" onclick="toggleApprove()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
           <span>Approve</span>
         </button>
-
-        <button type="button" class="studio-btn studio-btn-save" id="btn-save-primary" onclick="saveCostSheet()" title="Post directly to SAP">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          <span>Save to SAP</span>
+        <button type="button" class="studio-btn studio-btn-edit" id="btn-change" onclick="toggleChangeMode()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+          <span>Change</span>
         </button>
-
-        <button type="button" class="studio-btn studio-btn-outline icon-only" onclick="window.print()" title="Print Costing Sheet">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        <button type="button" class="studio-btn studio-btn-save" id="btn-save-primary" onclick="saveCostSheet()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          <span>Save</span>
         </button>
       </div>
     </div>
   </section>
 
+  <!-- Scrollable Sheet Content -->
+  <div class="sheet-scroll">
 
+    <!-- KPI Bento Cards (Exact Pastel Palette & Layout) -->
+    <section class="total-board" aria-label="Cost totals">
+      <!-- 1: Fabric (Soft Pastel Blue) -->
+      <article class="total-card card-fabric">
+        <span class="total-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 7l8-4 8 4-8 4-8-4z"/>
+            <path d="M4 12l8 4 8-4"/>
+            <path d="M4 17l8 4 8-4"/>
+          </svg>
+        </span>
+        <div class="total-copy">
+          <strong id="kpi-fabric-tot">₹ 0.00</strong>
+          <span class="total-kicker">FABRIC</span>
+          <small><span id="badge-fabric-count">0</span> lines</small>
+        </div>
+      </article>
 
-  <!-- Modern Split-Screen Dual-Pane Studio Workspace -->
-  <div class="studio-split-workspace">
+      <!-- 2: Trims (Soft Pastel Peach / Orange) -->
+      <article class="total-card card-trim">
+        <span class="total-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 12l-8 8-8-8V4h8l8 8z"/>
+            <circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
+        <div class="total-copy">
+          <strong id="kpi-trim-tot">₹ 0.00</strong>
+          <span class="total-kicker">TRIMS</span>
+          <small><span id="badge-trim-count">0</span> lines</small>
+        </div>
+      </article>
 
-    <!-- LEFT STICKY PANEL: Parameters & Real-Time Pricing Studio (370px) -->
-    <aside class="studio-split-sidebar" id="studio-calc-panel">
-      <!-- Hero Selling Price & Quote Card -->
-      <div class="calc-hero-card">
-        <div class="calc-hero-head">
-          <div class="calc-hero-tag">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/></svg>
-            <span>Selling Price</span>
-          </div>
-          <span class="calc-quote-badge" id="kpi-quota-val">Quote: 10.000</span>
+      <!-- 3: Packing (Soft Pastel Mint / Green) -->
+      <article class="total-card card-pack">
+        <span class="total-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 8l-9-5-9 5 9 5 9-5z"/>
+            <path d="M3 8v8l9 5 9-5V8"/>
+            <path d="M12 13v8"/>
+          </svg>
+        </span>
+        <div class="total-copy">
+          <strong id="kpi-packing-tot">₹ 0.00</strong>
+          <span class="total-kicker">PACKING</span>
+          <small><span id="badge-packing-count">0</span> lines</small>
         </div>
+      </article>
 
-        <div class="calc-hero-main-price">
-          <span class="calc-price-currency">₹</span>
-          <span class="calc-price-inr" id="kpi-sellprice">805.50</span>
-          <span class="calc-price-fx" id="kpi-sellprice-fr">EUR 8.95</span>
+      <!-- 4: Sub Total (Soft Pastel Periwinkle / Lavender) -->
+      <article class="total-card card-sub">
+        <span class="total-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="3" width="16" height="18" rx="2"/>
+            <path d="M8 7h8M8 11h8M8 15h5"/>
+          </svg>
+        </span>
+        <div class="total-copy">
+          <strong id="kpi-subtot">₹ 0.00</strong>
+          <span class="total-kicker">SUB TOTAL</span>
+          <small id="kpi-margin-tot">0.0% / 0.0%</small>
         </div>
+      </article>
 
-        <div class="calc-hero-chips">
-          <div class="calc-mini-chip">
-            <span class="chip-lbl">Sub Total</span>
-            <strong id="kpi-subtot">₹ 412.75</strong>
-          </div>
-          <div class="calc-mini-chip">
-            <span class="chip-lbl">Margins</span>
-            <strong id="kpi-margin-tot">0.0% / 10.0%</strong>
-          </div>
+      <!-- 5: Making + OH (Soft Pastel Purple) -->
+      <article class="total-card card-ops">
+        <span class="total-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>
+          </svg>
+        </span>
+        <div class="total-copy">
+          <strong id="kpi-ops-tot">₹ 0.00</strong>
+          <span class="total-kicker">MAKING + OH</span>
+          <small><span id="kpi-sam-tot">0.00 min</span> · <span id="kpi-mach-tot">0</span> machines</small>
         </div>
+      </article>
 
-        <!-- Direct Cost Breakdown Jumpers -->
-        <div class="calc-direct-cost-strip">
-          <div class="cost-pill-jump" onclick="switchStudioTab('fabric')" title="Filter to Fabric Breakdown">
-            <span class="cost-dot dot-blue"></span>
-            <span class="cost-name">Fab</span>
-            <strong id="kpi-fabric-tot">₹ 311.04</strong>
-          </div>
-          <div class="cost-pill-jump" onclick="switchStudioTab('trim')" title="Filter to Trims Breakdown">
-            <span class="cost-dot dot-amber"></span>
-            <span class="cost-name">Trim</span>
-            <strong id="kpi-trim-tot">₹ 83.51</strong>
-          </div>
-          <div class="cost-pill-jump" onclick="switchStudioTab('packing')" title="Filter to Packing Breakdown">
-            <span class="cost-dot dot-green"></span>
-            <span class="cost-name">Pack</span>
-            <strong id="kpi-packing-tot">₹ 18.20</strong>
-          </div>
+      <!-- 6: Selling Price (Dark Navy Hero Card) -->
+      <article class="total-card card-sell">
+        <span class="total-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 7v10M15 9.5c0-1.2-1.3-2-3-2s-3 .8-3 2 1.2 1.8 3 2 3 .8 3 2-1.3 2-3 2-3-.8-3-2"/>
+          </svg>
+        </span>
+        <div class="total-copy">
+          <strong id="kpi-sellprice">₹ 0.00</strong>
+          <span class="total-kicker">SELLING PRICE</span>
+          <small id="kpi-sellprice-fr">USD 0.00</small>
+          <em id="kpi-quota-val">Quote: 0.000</em>
         </div>
-      </div>
+      </article>
+    </section>
 
-      <!-- Quick Specs Strip (Ops, SAM, Machines) -->
-      <div class="calc-specs-bar">
-        <div class="spec-cell">
-          <span class="spec-lbl">Making+OH</span>
-          <strong id="kpi-ops-tot">₹ 50.00</strong>
-        </div>
-        <div class="spec-cell">
-          <span class="spec-lbl">SAM</span>
-          <strong id="kpi-sam-tot">10.00 min</strong>
-        </div>
-        <div class="spec-cell">
-          <span class="spec-lbl">Machines</span>
-          <strong id="kpi-mach-tot">101</strong>
-        </div>
-        <div class="spec-cell">
-          <span class="spec-lbl">Pcs/Bnd</span>
-          <strong id="kpi-pcs-tot">20</strong>
-        </div>
-      </div>
-
-      <!-- Studio Parameters Stack (Accordion / Cards) -->
-      <div class="studio-params-stack" id="section-params">
-        <!-- Section Title Header -->
-        <div class="sidebar-section-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          <span>Studio Parameters</span>
-        </div>
-
-        <!-- Card 1: Production Machines -->
-        <div class="studio-param-card">
-          <div class="studio-param-card-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-            <span>Production Machines</span>
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-nmachreq">No Of Machines Req</label>
-            <input type="number" id="form-nmachreq" class="studio-form-input" value="101" readonly onchange="collectHeaderInputs()">
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-npeicbnd">No Of Pieces per Band</label>
-            <input type="number" id="form-npeicbnd" class="studio-form-input" value="20" readonly onchange="collectHeaderInputs()">
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-sam">SAM in minutes</label>
-            <input type="text" id="form-sam" class="studio-form-input" value="10.00" readonly onchange="collectHeaderInputs()">
-          </div>
-        </div>
-
-        <!-- Card 2: Making & Overheads -->
-        <div class="studio-param-card">
-          <div class="studio-param-card-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            <span>Making & Overheads</span>
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-making">Making</label>
-            <input type="text" id="form-making" class="studio-form-input" value="0.000" readonly onchange="collectHeaderInputs(); recalculateAll();">
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-overhead">Over head</label>
-            <input type="text" id="form-overhead" class="studio-form-input" value="50.000" readonly onchange="collectHeaderInputs(); recalculateAll();">
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-zwast">Garment Wast</label>
-            <input type="text" id="form-zwast" class="studio-form-input" value="0.000" readonly onchange="collectHeaderInputs(); recalculateAll();">
-          </div>
-        </div>
-
-        <!-- Card 3: Markup & Commission -->
-        <div class="studio-param-card">
-          <div class="studio-param-card-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            <span>Markup & Commission</span>
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label highlight" for="form-subtot">Sub Total</label>
-            <input type="text" id="form-subtot" class="studio-form-input" style="font-weight:700;" value="0.0000" readonly>
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-markupp">Markup % @</label>
-            <input type="text" id="form-markupp" class="studio-form-input" value="0.000" readonly onchange="collectHeaderInputs(); recalculateAll();">
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-markup">Mark Up Amount</label>
-            <input type="text" id="form-markup" class="studio-form-input" value="0.00" readonly>
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-commision">Commission @ %</label>
-            <input type="text" id="form-commision" class="studio-form-input" value="10.000" readonly onchange="collectHeaderInputs(); recalculateAll();">
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-commval">Commission Amount</label>
-            <input type="text" id="form-commval" class="studio-form-input" value="0.00" readonly>
-          </div>
-        </div>
-
-        <!-- Card 4: Final Pricing & Quotation -->
-        <div class="studio-param-card calc-final-card">
-          <div class="studio-param-card-title" style="color: var(--studio-primary);">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <span>Final Pricing & Quote</span>
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-addcost">Additional Cost</label>
-            <input type="text" id="form-addcost" class="studio-form-input" value="0.000" readonly onchange="collectHeaderInputs(); recalculateAll();">
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-discount">Discount %</label>
-            <input type="text" id="form-discount" class="studio-form-input" value="0.000" readonly onchange="collectHeaderInputs(); recalculateAll();">
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label highlight" for="form-sellprice">SELLING PRICE (INR)</label>
-            <input type="text" id="form-sellprice" class="studio-form-input calc-sellprice" value="805.50" readonly>
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label highlight" id="label-sellprice-fr" for="form-sellprice-fr">SELL-PRICE-EUR</label>
-            <input type="text" id="form-sellprice-fr" class="studio-form-input" style="font-weight:700; color:var(--studio-primary);" value="8.95" readonly>
-          </div>
-          <div class="studio-form-row">
-            <label class="studio-form-label" for="form-quota">FINAL-QUOTE</label>
-            <input type="text" id="form-quota" class="studio-form-input" value="10.000" readonly onchange="collectHeaderInputs()">
-          </div>
-        </div>
-      </div>
-    </aside>
-
-    <!-- RIGHT STAGE PANEL: Full-Height ALV Data Studio (Flex 1) -->
-    <main class="studio-split-main">
-      <!-- Stage Filter & Tab Bar -->
-      <div class="stage-nav-bar">
-        <div class="stage-tabs-group">
-          <button type="button" class="stage-nav-tab active" data-tab="all" onclick="switchStudioTab('all')">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <span>All Sections</span>
-            <span class="stage-badge" id="badge-all-count">21</span>
+    <!-- Table 1: Fabric (Blue Accent Bar) -->
+    <section class="grid-block studio-content-section" id="section-fabric">
+      <div class="grid-block-head">
+        <h2>
+          <span class="sec-icon icon-fabric">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 7l8-4 8 4-8 4-8-4z"/>
+              <path d="M4 12l8 4 8-4"/>
+            </svg>
+          </span>
+          Fabric
+        </h2>
+        <div class="grid-actions">
+          <button type="button" class="btn-add" onclick="addRow('fabric')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+            Add row
           </button>
-          <button type="button" class="stage-nav-tab" data-tab="fabric" onclick="switchStudioTab('fabric')">
-            <span>🧵 Fabric Details</span>
-            <span class="stage-badge badge-blue" id="badge-fabric-count">2</span>
-          </button>
-          <button type="button" class="stage-nav-tab" data-tab="trim" onclick="switchStudioTab('trim')">
-            <span>🏷️ Trims & Accessories</span>
-            <span class="stage-badge badge-amber" id="badge-trim-count">14</span>
-          </button>
-          <button type="button" class="stage-nav-tab" data-tab="packing" onclick="switchStudioTab('packing')">
-            <span>📦 Packing & Services</span>
-            <span class="stage-badge badge-green" id="badge-packing-count">5</span>
+          <button type="button" onclick="deleteRow('fabric')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
+            Delete
           </button>
         </div>
+      </div>
+      <div class="sap-table-container">
+        <table class="sap-alv-table" id="table-fabric">
+          <thead>
+            <tr>
+              <th class="col-center">SL</th>
+              <th>Section</th>
+              <th>Item</th>
+              <th>Material desc.</th>
+              <th class="col-center">Width</th>
+              <th class="col-num">Net</th>
+              <th class="col-num">Waste%</th>
+              <th class="col-num">Gross</th>
+              <th class="col-center">Curr</th>
+              <th class="col-num">E.curr</th>
+              <th class="col-num">P.Price</th>
+              <th class="col-num">Freight</th>
+              <th class="col-num">Duty</th>
+              <th class="col-num">Cost</th>
+              <th class="col-num">Total in INR</th>
+              <th class="col-num" id="th-ttcnv-fabric">TT in-USD</th>
+              <th class="col-num">Fin</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-fabric"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="13" class="total-label">Total</td>
+              <td class="col-num" id="tot-cost-fabric">0.0000</td>
+              <td class="col-num" id="tot-inr-fabric">0.0000</td>
+              <td class="col-num" id="tot-fr-fabric">0.0000</td>
+              <td class="col-num" id="tot-fin-fabric">0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
 
-        <div class="stage-quick-actions">
-          <span class="stage-hint-text">✨ Double-click cells in Change Mode to edit values</span>
+    <!-- Table 2: Trims (Orange Accent Bar) -->
+    <section class="grid-block studio-content-section" id="section-trim">
+      <div class="grid-block-head">
+        <h2>
+          <span class="sec-icon icon-trim">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 12l-8 8-8-8V4h8l8 8z"/>
+            </svg>
+          </span>
+          Trims
+        </h2>
+        <div class="grid-actions">
+          <button type="button" class="btn-add" onclick="addRow('trim')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+            Add row
+          </button>
+          <button type="button" onclick="deleteRow('trim')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
+            Delete
+          </button>
         </div>
       </div>
+      <div class="sap-table-container">
+        <table class="sap-alv-table" id="table-trim">
+          <thead>
+            <tr>
+              <th class="col-center">SL</th>
+              <th>Section</th>
+              <th>Item</th>
+              <th>Material desc.</th>
+              <th class="col-center">Width</th>
+              <th class="col-num">Net</th>
+              <th class="col-num">Waste%</th>
+              <th class="col-num">Gross</th>
+              <th class="col-center">Curr</th>
+              <th class="col-num">E.curr</th>
+              <th class="col-num">P.Price</th>
+              <th class="col-num">Freight</th>
+              <th class="col-num">Duty</th>
+              <th class="col-num">Cost</th>
+              <th class="col-num">Total in INR</th>
+              <th class="col-num" id="th-ttcnv-trim">TT in-USD</th>
+              <th class="col-num">Fin</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-trim"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="13" class="total-label">Total</td>
+              <td class="col-num" id="tot-cost-trim">0.0000</td>
+              <td class="col-num" id="tot-inr-trim">0.0000</td>
+              <td class="col-num" id="tot-fr-trim">0.0000</td>
+              <td class="col-num" id="tot-fin-trim">0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
 
-      <!-- Stage Scrollable Tables Area -->
-      <div class="stage-scroll-area">
-        <!-- Table 1: Fabric Breakdown -->
-        <div class="studio-table-card studio-content-section" id="section-fabric">
-          <div class="studio-table-header">
-            <div class="studio-table-title">
-              <h3>
-                <span>🧵 Fabric Details Breakdown</span>
-                <span class="studio-table-badge">to_Fabric</span>
-              </h3>
-            </div>
-            <div class="studio-table-actions">
-              <button type="button" class="studio-tool-btn" title="Add Row" onclick="addRow('fabric')">➕ Add Item</button>
-              <button type="button" class="studio-tool-btn" title="Delete Row" onclick="deleteRow('fabric')">➖ Remove</button>
-              <button type="button" class="studio-tool-btn" title="Export CSV" onclick="exportTableToCSV('fabric')">📊 Export CSV</button>
-            </div>
-          </div>
-
-          <div class="sap-table-container">
-            <table class="sap-alv-table" id="table-fabric">
-              <thead>
-                <tr>
-                  <th style="width:40px;" class="col-center">SL</th>
-                  <th style="width:110px;">Section</th>
-                  <th style="width:140px;">Item</th>
-                  <th style="min-width:200px;">Material Desc.</th>
-                  <th style="width:65px;" class="col-center">Width</th>
-                  <th style="width:85px;" class="col-num">Net</th>
-                  <th style="width:75px;" class="col-num">Waste%</th>
-                  <th style="width:85px;" class="col-num">Gross</th>
-                  <th style="width:55px;" class="col-center">Curr</th>
-                  <th style="width:65px;" class="col-num">E.Curr</th>
-                  <th style="width:85px;" class="col-num">P.Price</th>
-                  <th style="width:70px;" class="col-num">Freight</th>
-                  <th style="width:70px;" class="col-num">Duty</th>
-                  <th style="width:90px;" class="col-num">Cost</th>
-                  <th style="width:105px;" class="col-num">Total in INR</th>
-                  <th style="width:100px;" class="col-num" id="th-ttcnv-fabric">TT in-EUR</th>
-                  <th style="width:70px;" class="col-num">Fin</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-fabric">
-                <!-- Rendered dynamically -->
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="13" style="text-align:right; font-weight:bold;">Total Fabric:</td>
-                  <td class="col-num" id="tot-cost-fabric">0.0000</td>
-                  <td class="col-num" id="tot-inr-fabric">0.0000</td>
-                  <td class="col-num" id="tot-fr-fabric">0.0000</td>
-                  <td class="col-num" id="tot-fin-fabric">0.00</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        <!-- Table 2: Trim Breakdown -->
-        <div class="studio-table-card studio-content-section" id="section-trim">
-          <div class="studio-table-header">
-            <div class="studio-table-title">
-              <h3>
-                <span>🏷️ Trim & Accessories Breakdown</span>
-                <span class="studio-table-badge">to_Trim</span>
-              </h3>
-            </div>
-            <div class="studio-table-actions">
-              <button type="button" class="studio-tool-btn" title="Add Row" onclick="addRow('trim')">➕ Add Item</button>
-              <button type="button" class="studio-tool-btn" title="Delete Row" onclick="deleteRow('trim')">➖ Remove</button>
-              <button type="button" class="studio-tool-btn" title="Export CSV" onclick="exportTableToCSV('trim')">📊 Export CSV</button>
-            </div>
-          </div>
-
-          <div class="sap-table-container">
-            <table class="sap-alv-table" id="table-trim">
-              <thead>
-                <tr>
-                  <th style="width:40px;" class="col-center">SL</th>
-                  <th style="width:110px;">Section</th>
-                  <th style="width:140px;">Item</th>
-                  <th style="min-width:200px;">Material Desc.</th>
-                  <th style="width:65px;" class="col-center">Width</th>
-                  <th style="width:85px;" class="col-num">Net</th>
-                  <th style="width:75px;" class="col-num">Waste%</th>
-                  <th style="width:85px;" class="col-num">Gross</th>
-                  <th style="width:55px;" class="col-center">Curr</th>
-                  <th style="width:65px;" class="col-num">E.Curr</th>
-                  <th style="width:85px;" class="col-num">P.Price</th>
-                  <th style="width:70px;" class="col-num">Freight</th>
-                  <th style="width:70px;" class="col-num">Duty</th>
-                  <th style="width:90px;" class="col-num">Cost</th>
-                  <th style="width:105px;" class="col-num">Total in INR</th>
-                  <th style="width:100px;" class="col-num" id="th-ttcnv-trim">TT in-EUR</th>
-                  <th style="width:70px;" class="col-num">Fin</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-trim">
-                <!-- Rendered dynamically -->
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="13" style="text-align:right; font-weight:bold;">Total Trim:</td>
-                  <td class="col-num" id="tot-cost-trim">0.0000</td>
-                  <td class="col-num" id="tot-inr-trim">0.0000</td>
-                  <td class="col-num" id="tot-fr-trim">0.0000</td>
-                  <td class="col-num" id="tot-fin-trim">0.00</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
-
-        <!-- Table 3: Packing & Other Services Grid -->
-        <div class="studio-table-card studio-content-section" id="section-packing">
-          <div class="studio-table-header">
-            <div class="studio-table-title">
-              <h3>
-                <span>📦 Packing, Washing & Special Services</span>
-                <span class="studio-table-badge">to_Packing</span>
-              </h3>
-            </div>
-            <div class="studio-table-actions">
-              <button type="button" class="studio-tool-btn" title="Add Row" onclick="addRow('packing')">➕ Add Item</button>
-              <button type="button" class="studio-tool-btn" title="Delete Row" onclick="deleteRow('packing')">➖ Remove</button>
-              <button type="button" class="studio-tool-btn" title="Export CSV" onclick="exportTableToCSV('packing')">📊 Export CSV</button>
-            </div>
-          </div>
-
-          <div class="sap-table-container">
-            <table class="sap-alv-table" id="table-packing">
-              <thead>
-                <tr>
-                  <th style="width:40px;" class="col-center">SL</th>
-                  <th style="width:110px;">Section</th>
-                  <th style="width:140px;">Item</th>
-                  <th style="min-width:200px;">Material Desc.</th>
-                  <th style="width:65px;" class="col-center">Width</th>
-                  <th style="width:85px;" class="col-num">Net</th>
-                  <th style="width:75px;" class="col-num">Waste%</th>
-                  <th style="width:85px;" class="col-num">Gross</th>
-                  <th style="width:55px;" class="col-center">Curr</th>
-                  <th style="width:65px;" class="col-num">E.Curr</th>
-                  <th style="width:85px;" class="col-num">P.Price</th>
-                  <th style="width:70px;" class="col-num">Freight</th>
-                  <th style="width:70px;" class="col-num">Duty</th>
-                  <th style="width:90px;" class="col-num">Cost</th>
-                  <th style="width:105px;" class="col-num">Total in INR</th>
-                  <th style="width:100px;" class="col-num" id="th-ttcnv-packing">TT in-EUR</th>
-                  <th style="width:70px;" class="col-num">Fin</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-packing">
-                <!-- Rendered dynamically -->
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="13" style="text-align:right; font-weight:bold;">Total Packing:</td>
-                  <td class="col-num" id="tot-cost-packing">0.0000</td>
-                  <td class="col-num" id="tot-inr-packing">0.0000</td>
-                  <td class="col-num" id="tot-fr-packing">0.0000</td>
-                  <td class="col-num" id="tot-fin-packing">0.00</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+    <!-- Table 3: Packing (Green Accent Bar) -->
+    <section class="grid-block studio-content-section" id="section-packing">
+      <div class="grid-block-head">
+        <h2>
+          <span class="sec-icon icon-pack">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 8l-9-5-9 5 9 5 9-5z"/>
+              <path d="M3 8v8l9 5 9-5V8"/>
+            </svg>
+          </span>
+          Packing
+        </h2>
+        <div class="grid-actions">
+          <button type="button" class="btn-add" onclick="addRow('packing')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+            Add row
+          </button>
+          <button type="button" onclick="deleteRow('packing')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
+            Delete
+          </button>
         </div>
       </div>
-    </main>
+      <div class="sap-table-container">
+        <table class="sap-alv-table" id="table-packing">
+          <thead>
+            <tr>
+              <th class="col-center">SL</th>
+              <th>Section</th>
+              <th>Item</th>
+              <th>Material desc.</th>
+              <th class="col-center">Width</th>
+              <th class="col-num">Net</th>
+              <th class="col-num">Waste%</th>
+              <th class="col-num">Gross</th>
+              <th class="col-center">Curr</th>
+              <th class="col-num">E.curr</th>
+              <th class="col-num">P.Price</th>
+              <th class="col-num">Freight</th>
+              <th class="col-num">Duty</th>
+              <th class="col-num">Cost</th>
+              <th class="col-num">Total in INR</th>
+              <th class="col-num" id="th-ttcnv-packing">TT in-USD</th>
+              <th class="col-num">Fin</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-packing"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="13" class="total-label">Total</td>
+              <td class="col-num" id="tot-cost-packing">0.0000</td>
+              <td class="col-num" id="tot-inr-packing">0.0000</td>
+              <td class="col-num" id="tot-fr-packing">0.0000</td>
+              <td class="col-num" id="tot-fin-packing">0.00</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <!-- Bottom Costing & Commercial Parameters (4 Columns) -->
+    <section class="cost-form" id="section-params">
+      <!-- Col 1: Production -->
+      <div class="cost-form-col">
+        <label class="cost-field"><span>No Of Machines Req</span><input type="number" id="form-nmachreq" value="37" readonly onchange="collectHeaderInputs()"></label>
+        <label class="cost-field"><span>No Of Pieces per Band</span><input type="number" id="form-npeicbnd" value="0" readonly onchange="collectHeaderInputs()"></label>
+        <label class="cost-field"><span>SAM in minutes</span><input type="text" id="form-sam" value="27.55" readonly onchange="collectHeaderInputs()"></label>
+      </div>
+
+      <!-- Col 2: Making & Waste -->
+      <div class="cost-form-col">
+        <label class="cost-field"><span>Making</span><input type="text" id="form-making" value="150.000" readonly onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field"><span>Over head</span><input type="text" id="form-overhead" value="0.000" readonly onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field"><span>Garment Wast</span><input type="text" id="form-zwast" value="3.000" readonly onchange="collectHeaderInputs(); recalculateAll();"></label>
+      </div>
+
+      <!-- Col 3: Markup & Commercials -->
+      <div class="cost-form-col">
+        <label class="cost-field"><span>Sub Total</span><input type="text" id="form-subtot" value="565.5698" readonly></label>
+        <label class="cost-field"><span>Markup % @</span><input type="text" id="form-markupp" value="24.850" readonly onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field"><span>Mark up</span><input type="text" id="form-markup" value="140.54" readonly></label>
+        <label class="cost-field"><span>Commission @</span><input type="text" id="form-commision" value="4.500" readonly onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field"><span>Commission</span><input type="text" id="form-commval" value="31.78" readonly></label>
+      </div>
+
+      <!-- Col 4: Price & Quote (Green Highlighted Inputs) -->
+      <div class="cost-form-col cost-form-price">
+        <label class="cost-field"><span>Additional cost</span><input type="text" id="form-addcost" value="0.000" readonly onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field"><span>Discount %</span><input type="text" id="form-discount" value="0.000" readonly onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field cost-field-strong"><span>SELLING PRICE</span><input type="text" id="form-sellprice" class="calc-sellprice" value="887.89" readonly></label>
+        <label class="cost-field cost-field-strong"><span id="label-sellprice-fr">SELL-PRICE-USD</span><input type="text" id="form-sellprice-fr" value="10.21" readonly></label>
+        <label class="cost-field cost-field-strong"><span>FINAL-QUOTE</span><input type="text" id="form-quota" value="11.910" readonly onchange="collectHeaderInputs()"></label>
+      </div>
+    </section>
+
+    <!-- Hidden compatibility hooks -->
+    <div class="sheet-kpi-hooks" hidden>
+      <span id="badge-all-count"></span>
+      <span id="kpi-pcs-tot"></span>
+      <span id="count-fabric"></span>
+      <span id="count-trim"></span>
+      <span id="count-packing"></span>
+    </div>
+
   </div>
 
   <!-- Studio Status Bar -->
   <footer class="studio-statusbar">
     <div class="studio-status-left">
       <span class="studio-status-icon info" id="sap-status-icon">✔</span>
-      <span id="sap-status-text">Ready. Connected to SAP ZCOST_SRV</span>
+      <span id="sap-status-text">Costing Sheet loaded: SO 22005882 Item 000020 [SAP Connected (Live)]</span>
     </div>
     <div class="studio-status-right">
       <span class="studio-sys-chip">EVOLV ZCOST v2.4</span>
@@ -554,30 +489,26 @@
 
 </div>
 
-<!-- EVOLV Clean Landing Search Page (matching user requested UI) -->
+<!-- EVOLV Landing Search Page -->
 <div class="evolv-landing-page" id="evolv-landing-page">
-  <!-- Isolated Background Decorations (Out of flex flow) -->
   <div class="evolv-bg-decorations" aria-hidden="true">
     <div class="evolv-bg-orb evolv-bg-orb-1"></div>
     <div class="evolv-bg-orb-2"></div>
     <div class="evolv-bg-orb-3"></div>
   </div>
 
-  <!-- Top Navigation Bar (Flush to top) -->
-  <!-- Top Navigation Bar (Flush to top) -->
   <header class="evolv-navbar">
     <div class="evolv-nav-left">
       <div class="evolv-logo" onclick="window.location.href='http://localhost:8888/EVOL/portal_dashboard.php'" style="cursor:pointer;" title="EVOLV Portal">
         <img src="public/logo.png" alt="EVOLV" class="evolv-logo-img" onerror="this.style.display='none'; document.getElementById('evolv-logo-fallback').style.display='inline';">
         <span id="evolv-logo-fallback" class="evolv-logo-text" style="display:none;">evolv</span>
       </div>
-
       <a href="http://localhost:8888/EVOL/portal_dashboard.php" class="evolv-module-badge" title="Go to Portal Dashboard">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
           <polyline points="9 22 9 12 15 12 15 22"/>
         </svg>
-        <span>Fabric</span>
+        <span>Costing</span>
       </a>
     </div>
 
@@ -598,7 +529,6 @@
           </div>
         </div>
 
-        <!-- Dropdown Menu -->
         <div class="evolv-user-dropdown" id="evolv-user-dropdown">
           <div class="evolv-dropdown-header">
             <div class="evolv-dropdown-user-name">Administrator</div>
@@ -625,7 +555,6 @@
     </div>
   </header>
 
-  <!-- Center Hero Search Card -->
   <main class="evolv-hero-section">
     <div class="evolv-search-card">
       <div class="evolv-card-tag">Quotation</div>
@@ -656,16 +585,70 @@
     </div>
   </main>
 
-  <!-- Bottom Footer Bar -->
   <footer class="evolv-footer">
     <div class="evolv-footer-left">EVOLV © 2026 EVOLV Clothing. All rights reserved.</div>
     <div class="evolv-footer-center">SAP ERP Operational Analytics Hub</div>
   </footer>
 </div>
 
+<!-- Quotation Master Confirmation Modal (Yes / No) -->
+<div class="evolv-modal-overlay" id="modal-not-found" hidden>
+  <div class="evolv-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="modal-not-found-title">
+    <div class="evolv-modal-icon-badge">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="12" y1="18" x2="12" y2="12"/>
+        <line x1="9" y1="15" x2="15" y2="15"/>
+      </svg>
+    </div>
+    <h3 class="evolv-modal-title" id="modal-not-found-title">Quotation Master Not Found</h3>
+    <p class="evolv-modal-desc">
+      No Quotation Master exists in SAP or ZCOST records for:
+    </p>
+    <div class="evolv-modal-card-meta">
+      <div class="meta-item">
+        <span class="meta-lbl">Quotation (SO)</span>
+        <span class="meta-val" id="modal-nf-vbeln">22005882</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-lbl">Item (POSNR)</span>
+        <span class="meta-val" id="modal-nf-posnr">000020</span>
+      </div>
+    </div>
+    <p class="evolv-modal-question">
+      Do you want to create a new quotation master for this?
+    </p>
+    <div class="evolv-modal-actions">
+      <button type="button" class="btn-modal-yes" id="btn-modal-yes" onclick="handleConfirmCreateMaster()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span>Yes, Create Master</span>
+      </button>
+      <button type="button" class="btn-modal-no" id="btn-modal-no" onclick="handleCancelSearchAgain()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <span>No, Search Again</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="load-overlay" id="load-overlay" hidden>
+  <div class="load-card" role="status" aria-live="polite">
+    <div class="load-spinner" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p id="load-overlay-text">Loading costing sheet</p>
+  </div>
+</div>
+
 <!-- Interactive Engine -->
-<script src="public/js/sap_costing.js"></script>
+<script src="public/js/sap_costing.js?v=27"></script>
+
+
 
 </body>
 </html>
-

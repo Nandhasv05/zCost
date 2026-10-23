@@ -6,7 +6,7 @@
 let costData = null;
 let isEditMode = false;
 let currentVbeln = '3000008';
-let currentPosnr = '000010';
+let currentPosnr = '000020';
 
 // Format Helpers
 function num(val, dec = 2) {
@@ -24,12 +24,65 @@ function parseNum(val) {
   return isNaN(n) ? 0 : n;
 }
 
+// Section Dropdown Options (aligned with SAP standard domain)
+const SECTION_OPTIONS = [
+  'Washing',
+  'Embroidery',
+  'Others',
+  'Packing',
+  'Zips',
+  'Tags',
+  'Threads',
+  'Fabric',
+  'Button',
+  'Label',
+  'Trim Fabric',
+  'Interlining'
+];
+
+function getDefaultSection(type) {
+  if (type === 'fabric') return 'Fabric';
+  if (type === 'trim') return 'Trim Fabric';
+  if (type === 'packing') return 'Packing';
+  return 'Fabric';
+}
+
+function normalizeSection(val, type) {
+  if (!val || String(val).trim() === '') {
+    return getDefaultSection(type);
+  }
+  const str = String(val).trim();
+  const matched = SECTION_OPTIONS.find(opt => opt.toLowerCase() === str.toLowerCase());
+  if (matched) return matched;
+  if (str.toUpperCase() === 'TRIM') return 'Trim Fabric';
+  if (str.toUpperCase() === 'FABRIC' || str.toUpperCase() === 'FAB') return 'Fabric';
+  if (str.toUpperCase() === 'PACKING' || str.toUpperCase() === 'PACK') return 'Packing';
+  return str;
+}
+
+let loaderStarted = 0;
+
+function showLoader(msg) {
+  loaderStarted = Date.now();
+  const el = document.getElementById('load-overlay');
+  const text = document.getElementById('load-overlay-text');
+  if (text) text.textContent = msg || 'Loading costing sheet';
+  if (el) el.hidden = false;
+}
+
+async function hideLoader() {
+  const wait = 500 - (Date.now() - loaderStarted);
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  const el = document.getElementById('load-overlay');
+  if (el) el.hidden = true;
+}
+
 function updateStatus(msg, type = 'info') {
   const msgEl = document.getElementById('sap-status-text');
   const iconEl = document.getElementById('sap-status-icon');
   if (msgEl) msgEl.textContent = msg;
   if (iconEl) {
-    iconEl.className = 'sap-status-icon ' + type;
+    iconEl.className = 'studio-status-icon ' + type;
     iconEl.textContent = (type === 'error') ? '!' : (type === 'warn' ? '!' : '✔');
   }
 }
@@ -43,40 +96,55 @@ function showToast(msg, isError = false) {
     document.body.appendChild(toast);
   }
   toast.className = 'sap-toast' + (isError ? ' error' : '');
-  toast.innerHTML = (isError ? '⚠️ ' : '💾 ') + msg;
+  toast.textContent = msg;
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 3500);
 }
 
-// Fetch Cost Sheet from Backend (SAP Live / Mock)
+let pendingNotFoundQuotation = null;
+
+// Fetch Cost Sheet from Backend (SAP Live / Database / Auto-Generated Master)
 async function fetchCostSheet(vbeln, posnr) {
   currentVbeln = vbeln || currentVbeln;
   currentPosnr = posnr || currentPosnr;
 
-  updateStatus(`Reading Sales Order ${currentVbeln} / Item ${currentPosnr} from SAP...`, 'info');
+  updateStatus(`Reading Quotation ${currentVbeln} / Item ${currentPosnr}...`, 'info');
+  showLoader('Loading costing sheet');
 
   try {
     const res = await fetch(`api.php?vbeln=${encodeURIComponent(currentVbeln)}&posnr=${encodeURIComponent(currentPosnr)}`);
     const json = await res.json();
 
     if (json.success && json.data) {
+      hideNotFoundModal();
       costData = json.data;
       const mainWin = document.getElementById('sap-window');
       if (mainWin) mainWin.style.display = 'flex';
+      const landing = document.getElementById('evolv-landing-page');
+      if (landing) landing.classList.add('hidden');
       renderAll();
-      const srcText = json.source === 'LIVE_SAP' ? 'SAP Connected (Live)' : (json.note || 'Snapshot loaded');
+      const srcText = json.is_new
+        ? 'New Quotation Master Created'
+        : (json.source === 'LIVE_SAP' ? 'SAP Connected (Live)' : (json.note || 'Snapshot loaded'));
       updateStatus(`Costing Sheet loaded: SO ${costData.Vbeln} Item ${costData.Posnr} [${srcText}]`, 'info');
-      showToast(`Loaded ${costData.Vbeln} - ${srcText}`);
+      showToast(json.is_new ? `Created new quotation master for ${costData.Vbeln}` : `Loaded ${costData.Vbeln} - ${srcText}`);
       return true;
+    } else if (json.not_found) {
+      // Prompt user with Yes / No dialog: "Do you want to create new quotation master?"
+      pendingNotFoundQuotation = { vbeln: currentVbeln, posnr: currentPosnr };
+      showNotFoundModal(currentVbeln, currentPosnr);
+      updateStatus(`Quotation ${currentVbeln} (Item ${currentPosnr}) not found. Please confirm creation.`, 'warn');
+      return false;
     } else {
       updateStatus(`Error: ${json.error || 'Failed to load Cost Sheet'}`, 'error');
-      showToast(json.error || 'Failed to load Cost Sheet', true);
+      showToast(json.error || 'Quotation not found', true);
       return false;
     }
   } catch (err) {
     updateStatus(`Network Error: ${err.message}`, 'error');
-    showToast(`Network Error: ${err.message}`, true);
     return false;
+  } finally {
+    await hideLoader();
   }
 }
 
@@ -90,6 +158,7 @@ async function saveCostSheet() {
 
   updateStatus(`Posting Costing Sheet ${costData.Vbeln} to SAP ZCOST_SRV...`, 'info');
   showToast('Posting to SAP ZCOST_SRV/ZCOSTHSet...');
+  showLoader('Saving costing sheet');
 
   try {
     const res = await fetch('api.php', {
@@ -116,6 +185,8 @@ async function saveCostSheet() {
   } catch (err) {
     updateStatus(`Save request failed: ${err.message}`, 'error');
     showToast(`Error: ${err.message}`, true);
+  } finally {
+    await hideLoader();
   }
 }
 
@@ -124,10 +195,11 @@ function renderAll() {
   if (!costData) return;
 
   // Ensure arrays exist
-  if (!costData.to_Fabric) costData.to_Fabric = { results: [] };
-  if (!costData.to_Trim) costData.to_Trim = { results: [] };
-  if (!costData.to_Packing) costData.to_Packing = { results: [] };
-  if (!costData.to_Special) costData.to_Special = { results: [] };
+  if (!costData.to_Fabric || !Array.isArray(costData.to_Fabric.results)) costData.to_Fabric = { results: [] };
+  if (!costData.to_Trim || !Array.isArray(costData.to_Trim.results)) costData.to_Trim = { results: [] };
+  if (!costData.to_Packing || !Array.isArray(costData.to_Packing.results)) costData.to_Packing = { results: [] };
+  if (!costData.to_Special || !Array.isArray(costData.to_Special.results)) costData.to_Special = { results: [] };
+
 
   renderHeader();
   renderTable('fabric', costData.to_Fabric.results);
@@ -164,16 +236,17 @@ function renderHeader() {
   // Screen header title
   const screenTitle = document.getElementById('sap-screen-title');
   if (screenTitle) {
-    screenTitle.textContent = titleText;
+    screenTitle.textContent = isApproved ? '• APPROVED' : '• NOT APPROVED';
     screenTitle.className = 'sap-screen-title ' + (isApproved ? 'approved' : 'not-approved');
   }
 
   // Approve button text
   const btnApprove = document.getElementById('btn-approve');
   if (btnApprove) {
+    const approveIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>';
     btnApprove.innerHTML = isApproved 
-      ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span>Un-Approve</span>`
-      : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>Approve</span>`;
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg><span>Un-Approve</span>' 
+      : approveIcon + '<span>Approve</span>';
     btnApprove.className = 'studio-btn ' + (isApproved ? 'studio-btn-outline' : 'studio-btn-approve');
   }
 
@@ -225,7 +298,10 @@ function renderTable(type, rows) {
   let html = '';
   rows.forEach((r, idx) => {
     const sl = r.Slno ? r.Slno : (idx + 1);
-    const section = r.Zsection || (type === 'fabric' ? 'FABRIC' : (type === 'trim' ? 'TRIM' : 'PACKING'));
+    const section = normalizeSection(r.Zsection, type);
+    if (!r.Zsection) {
+      r.Zsection = section;
+    }
     const item = r.Item || (r.Maktx ? r.Maktx.split(' ')[0] : '');
     const maktx = r.Maktx || '';
     const width = r.WidSiz || '';
@@ -243,25 +319,35 @@ function renderTable(type, rows) {
     const totalfr = parseNum(r.Totalfr) || (totalinr / (parseNum(costData.Cnvf) || 1));
 
     html += `
-      <tr data-type="${type}" data-idx="${idx}" style="animation-delay: ${idx * 0.02}s;">
+      <tr class="${r._isNew ? 'row-enter' : ''}" data-type="${type}" data-idx="${idx}">
         <td class="col-center sl-col">${sl}</td>
-        <td>
-          <input type="text" class="sap-table-cell-input" value="${escapeHtml(section)}" 
-                 onchange="updateRowField('${type}', ${idx}, 'Zsection', this.value)" ${!isEditMode ? 'readonly' : ''}>
+        <td class="col-text cell-section-col">
+          <select class="sap-table-cell-select cell-section-select" title="${escapeHtml(section)}"
+                  onchange="updateRowField('${type}', ${idx}, 'Zsection', this.value)" ${!isEditMode ? 'disabled' : ''}>
+            ${SECTION_OPTIONS.map(opt => `
+              <option value="${escapeHtml(opt)}" ${opt.toLowerCase() === section.toLowerCase() ? 'selected' : ''}>${escapeHtml(opt)}</option>
+            `).join('')}
+            ${section && !SECTION_OPTIONS.some(o => o.toLowerCase() === section.toLowerCase()) ? `
+              <option value="${escapeHtml(section)}" selected>${escapeHtml(section)}</option>
+            ` : ''}
+          </select>
         </td>
-        <td class="cell-coral">
+        <td class="cell-coral col-text">
           <div class="cell-dropdown-wrap">
             <span class="cell-arrow">▼</span>
-            <input type="text" class="sap-table-cell-input cell-coral" value="${escapeHtml(item)}" 
+            <input type="text" class="sap-table-cell-input cell-coral cell-text" title="${escapeHtml(item)}" value="${escapeHtml(item)}"
+                   style="min-width:${Math.max(String(item).length, 4)}ch"
                    onchange="updateRowField('${type}', ${idx}, 'Item', this.value)" ${!isEditMode ? 'readonly' : ''}>
           </div>
         </td>
-        <td>
-          <input type="text" class="sap-table-cell-input cell-coral" value="${escapeHtml(maktx)}" 
+        <td class="col-desc">
+          <input type="text" class="sap-table-cell-input cell-coral cell-text" title="${escapeHtml(maktx)}" value="${escapeHtml(maktx)}"
+                 style="min-width:${Math.max(String(maktx).length, 12)}ch"
                  onchange="updateRowField('${type}', ${idx}, 'Maktx', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
-        <td>
-          <input type="text" class="sap-table-cell-input col-center cell-amber" value="${escapeHtml(width)}" 
+        <td class="col-text">
+          <input type="text" class="sap-table-cell-input col-center cell-amber cell-text" title="${escapeHtml(width)}" value="${escapeHtml(width)}"
+                 style="min-width:${Math.max(String(width).length, 4)}ch"
                  onchange="updateRowField('${type}', ${idx}, 'WidSiz', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num">
@@ -534,42 +620,18 @@ function recalculateAll() {
   const sellPriceFr = cnvf > 0 ? (sellingPrice / cnvf) : 0;
   setInputValue('form-sellprice-fr', num(sellPriceFr, 2));
 
-  // Update Executive Studio Top Bento KPI cards
-  const kpiSellInr = document.getElementById('kpi-sellprice');
-  if (kpiSellInr) kpiSellInr.textContent = '₹ ' + num(sellingPrice, 2);
-
-  const kpiSellFr = document.getElementById('kpi-sellprice-fr');
-  if (kpiSellFr) kpiSellFr.textContent = (costData.Cnv || 'EUR') + ' ' + num(sellPriceFr, 2);
-
-  const kpiQuotaVal = document.getElementById('kpi-quota-val');
-  if (kpiQuotaVal) kpiQuotaVal.textContent = 'Quote: ' + num(costData.Quota || 10, 3);
-
-  const kpiSubtot = document.getElementById('kpi-subtot');
-  if (kpiSubtot) kpiSubtot.textContent = '₹ ' + num(calculatedSubtot, 2);
-
-  const kpiFabric = document.getElementById('kpi-fabric-tot');
-  if (kpiFabric) kpiFabric.textContent = '₹ ' + num(fabricInr, 2);
-
-  const kpiTrim = document.getElementById('kpi-trim-tot');
-  if (kpiTrim) kpiTrim.textContent = '₹ ' + num(trimInr, 2);
-
-  const kpiPacking = document.getElementById('kpi-packing-tot');
-  if (kpiPacking) kpiPacking.textContent = '₹ ' + num(packingInr, 2);
-
-  const kpiOps = document.getElementById('kpi-ops-tot');
-  if (kpiOps) kpiOps.textContent = '₹ ' + num(making + overhead, 2);
-
-  const kpiMargin = document.getElementById('kpi-margin-tot');
-  if (kpiMargin) kpiMargin.textContent = num(markupP, 1) + '% / ' + num(commP, 1) + '%';
-
-  const kpiSam = document.getElementById('kpi-sam-tot');
-  if (kpiSam) kpiSam.textContent = num(costData.Sam || 10, 2) + ' min';
-
-  const kpiMach = document.getElementById('kpi-mach-tot');
-  if (kpiMach) kpiMach.textContent = costData.Nmachreq || 101;
-
-  const kpiPcs = document.getElementById('kpi-pcs-tot');
-  if (kpiPcs) kpiPcs.textContent = costData.Npeicbnd || 20;
+  paintKpi('kpi-sellprice', '₹ ' + num(sellingPrice, 2));
+  paintKpi('kpi-sellprice-fr', (costData.Cnv || 'EUR') + ' ' + num(sellPriceFr, 2));
+  paintKpi('kpi-quota-val', 'Quote: ' + num(costData.Quota || 0, 3));
+  paintKpi('kpi-subtot', '₹ ' + num(calculatedSubtot, 2));
+  paintKpi('kpi-fabric-tot', '₹ ' + num(fabricInr, 2));
+  paintKpi('kpi-trim-tot', '₹ ' + num(trimInr, 2));
+  paintKpi('kpi-packing-tot', '₹ ' + num(packingInr, 2));
+  paintKpi('kpi-ops-tot', '₹ ' + num(making + overhead, 2));
+  paintKpi('kpi-margin-tot', num(markupP, 1) + '% / ' + num(commP, 1) + '%');
+  paintKpi('kpi-sam-tot', num(costData.Sam || 0, 2) + ' min');
+  paintKpi('kpi-mach-tot', String(costData.Nmachreq || 0));
+  paintKpi('kpi-pcs-tot', String(costData.Npeicbnd || 0));
 
   // Update tab badge counts
   const countFabric = document.getElementById('count-fabric');
@@ -618,15 +680,20 @@ function toggleChangeMode() {
   isEditMode = !isEditMode;
   const btnChange = document.getElementById('btn-change');
   if (btnChange) {
-    btnChange.innerHTML = isEditMode
-      ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span>Display Mode</span>`
-      : `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit Mode</span>`;
-    btnChange.classList.toggle('active', isEditMode);
+    const changeIcon = isEditMode
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+    btnChange.innerHTML = changeIcon + (isEditMode ? '<span>Display</span>' : '<span>Change</span>');
+    btnChange.className = 'studio-btn studio-btn-edit' + (isEditMode ? ' active' : '');
   }
+  document.body.classList.toggle('is-editing', isEditMode);
 
   // Update input states
   document.querySelectorAll('.sap-table-cell-input').forEach(inp => {
     inp.readOnly = !isEditMode;
+  });
+  document.querySelectorAll('.sap-table-cell-select').forEach(sel => {
+    sel.disabled = !isEditMode;
   });
 
   const inputsToToggle = ['form-nmachreq', 'form-npeicbnd', 'form-sam', 'form-making', 'form-overhead', 
@@ -640,44 +707,94 @@ function toggleChangeMode() {
   showToast(isEditMode ? 'Edit Mode Activated' : 'Display Mode Active');
 }
 
-// Add Row to Table
+function ensureBlankSheet() {
+  if (costData) {
+    ['to_Fabric', 'to_Trim', 'to_Packing', 'to_Special'].forEach(key => {
+      if (!costData[key]) costData[key] = { results: [] };
+      if (!Array.isArray(costData[key].results)) costData[key].results = [];
+    });
+    return;
+  }
+  costData = {
+    Vbeln: document.getElementById('hdr-vbeln')?.value.trim() || '',
+    Posnr: document.getElementById('hdr-posnr')?.value.trim() || '000020',
+    Cnv: document.getElementById('hdr-cnv')?.value.trim() || 'EUR',
+    Cnvf: document.getElementById('hdr-cnvf')?.value || '90.00',
+    Approve: '',
+    Sellprice: '0',
+    Quota: '0',
+    to_Fabric: { results: [] },
+    to_Trim: { results: [] },
+    to_Packing: { results: [] },
+    to_Special: { results: [] }
+  };
+}
+
+function paintKpi(id, text) {
+  const el = document.getElementById(id);
+  if (!el || el.textContent === text) return;
+  el.textContent = text;
+  el.classList.remove('kpi-pop');
+  void el.offsetWidth;
+  el.classList.add('kpi-pop');
+}
+
+// Add an empty line the user can fill in
 function addRow(type) {
-  if (!costData) return;
+  ensureBlankSheet();
+  if (!isEditMode) toggleChangeMode();
   const list = getRowList(type);
   if (!list) return;
 
   const newRow = {
-    Vbeln: costData.Vbeln,
-    Posnr: costData.Posnr,
+    Vbeln: costData.Vbeln || '',
+    Posnr: costData.Posnr || '000020',
     Zline: String(list.length + 1).padStart(6, '0'),
-    Item: 'NEW ITEM',
-    Maktx: 'Description',
-    WidSiz: '52',
-    Net: '1.0000',
-    Wste: '5.000',
-    Gross: '1.0500',
+    Item: '',
+    Maktx: '',
+    WidSiz: '',
+    Net: '0',
+    Wste: '0',
+    Gross: '0',
     Curunit: 'INR',
-    Rate: '10.0000',
-    Totalinr: '10.5000',
-    Totalfr: (10.5 / (parseNum(costData.Cnvf) || 90)).toFixed(4),
-    Totalper: '0.0000',
-    Convr: '1.000',
-    Fright: '0.000',
-    Purp: '10.0000',
-    Duty: '0.000',
-    Fincost: '0.000',
+    Rate: '0',
+    Totalinr: '0',
+    Totalfr: '0',
+    Totalper: '0',
+    Convr: '1',
+    Fright: '0',
+    Purp: '0',
+    Duty: '0',
+    Fincost: '0',
     Slno: list.length + 1,
-    Zsection: type.toUpperCase(),
+    Zsection: getDefaultSection(type),
     Zdeli: '',
     Uname: '',
     Udate: null,
-    Utime: 'PT00H00M00S'
+    Utime: 'PT00H00M00S',
+    _isNew: true
   };
 
   list.push(newRow);
   renderTable(type, list);
+  delete newRow._isNew;
   recalculateAll();
-  showToast(`Added row to ${type.toUpperCase()}`);
+
+  const badge = document.getElementById(`badge-${type}-count`);
+  if (badge) badge.textContent = String(list.length);
+  const allBadge = document.getElementById('badge-all-count');
+  if (allBadge && costData) {
+    const n = (costData.to_Fabric?.results?.length || 0) + (costData.to_Trim?.results?.length || 0) + (costData.to_Packing?.results?.length || 0);
+    allBadge.textContent = String(n);
+  }
+
+  const entered = document.querySelector(`#tbody-${type} tr.row-enter`);
+  if (entered) {
+    entered.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const focusEl = entered.querySelector('input, select');
+    if (focusEl) focusEl.focus();
+  }
+  showToast(`Empty ${type} row added`);
 }
 
 // Delete Row from Table
@@ -689,6 +806,8 @@ function deleteRow(type) {
   list.pop();
   renderTable(type, list);
   recalculateAll();
+  const badge = document.getElementById(`badge-${type}-count`);
+  if (badge) badge.textContent = String(list.length);
   showToast(`Removed last row from ${type.toUpperCase()}`);
 }
 
@@ -755,7 +874,7 @@ function executeCommand() {
 
   // If user entered a number, query that Sales Order
   if (isNumeric(cmd)) {
-    fetchCostSheet(cmd, '000010');
+    fetchCostSheet(cmd, '');
   } else {
     showToast(`Command ${cmd} not recognized. Querying SO...`);
     fetchCostSheet(currentVbeln, currentPosnr);
@@ -812,13 +931,144 @@ function closeSearchModal() {
 }
 
 function quickSelectQuotation(vbeln) {
+  const cleanVbeln = (vbeln || '').trim();
   const searchInput = document.getElementById('landing-search-input');
-  if (searchInput) searchInput.value = vbeln;
+  if (searchInput) searchInput.value = cleanVbeln;
+  const navSearch = document.getElementById('nav-search-input');
+  if (navSearch) navSearch.value = cleanVbeln;
   handleLandingSearchSubmit();
 }
 
 function selectPresetQuotation(vbeln) {
   quickSelectQuotation(vbeln);
+}
+
+// Show "Quotation Master Not Found" Confirmation Modal (Yes / No)
+function showNotFoundModal(vbeln, posnr) {
+  const modal = document.getElementById('modal-not-found');
+  const vbelnEl = document.getElementById('modal-nf-vbeln');
+  const posnrEl = document.getElementById('modal-nf-posnr');
+
+  if (vbelnEl) vbelnEl.textContent = vbeln;
+  if (posnrEl) posnrEl.textContent = posnr;
+  if (modal) modal.hidden = false;
+}
+
+function hideNotFoundModal() {
+  const modal = document.getElementById('modal-not-found');
+  if (modal) modal.hidden = true;
+}
+
+// User clicked "Yes, Create Master"
+async function handleConfirmCreateMaster() {
+  hideNotFoundModal();
+  if (!pendingNotFoundQuotation) return;
+
+  const { vbeln, posnr } = pendingNotFoundQuotation;
+  showLoader('Creating new quotation master...');
+
+  try {
+    const res = await fetch(`api.php?vbeln=${encodeURIComponent(vbeln)}&posnr=${encodeURIComponent(posnr)}&action=create`);
+    const json = await res.json();
+    if (json.success && json.data) {
+      costData = json.data;
+    } else {
+      createBlankQuotationMaster(vbeln, posnr);
+    }
+  } catch (err) {
+    createBlankQuotationMaster(vbeln, posnr);
+  } finally {
+    await hideLoader();
+  }
+
+  // Auto enable edit mode so user can immediately add rows
+  isEditMode = true;
+  const btnEdit = document.getElementById('btn-change');
+  if (btnEdit) {
+    btnEdit.classList.add('studio-btn-active');
+    btnEdit.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg><span>Lock Mode</span>';
+  }
+
+  const landing = document.getElementById('evolv-landing-page');
+  const mainWin = document.getElementById('sap-window');
+  if (landing) landing.classList.add('hidden');
+  if (mainWin) mainWin.style.display = 'flex';
+
+  // Keep nav search bar in sync
+  const navSearch = document.getElementById('nav-search-input');
+  if (navSearch) navSearch.value = vbeln;
+
+  renderAll();
+  updateStatus(`New Quotation Master created for ${vbeln} [Item ${posnr}]`, 'info');
+  showToast(`Created new quotation master for ${vbeln}`);
+
+  // Update browser URL
+  try {
+    const newUrl = `${window.location.pathname}?vbeln=${encodeURIComponent(vbeln)}&posnr=${encodeURIComponent(posnr)}`;
+    window.history.pushState({ vbeln, posnr }, '', newUrl);
+  } catch (e) {}
+
+  pendingNotFoundQuotation = null;
+}
+
+// User clicked "No, Search Again"
+function handleCancelSearchAgain() {
+  hideNotFoundModal();
+  pendingNotFoundQuotation = null;
+
+  // Make sure Landing Search Page is visible and costing sheet is hidden
+  const landing = document.getElementById('evolv-landing-page');
+  const mainWin = document.getElementById('sap-window');
+  if (landing) landing.classList.remove('hidden');
+  if (mainWin) mainWin.style.display = 'none';
+
+  // Clear search input and focus
+  const searchInput = document.getElementById('landing-search-input');
+  if (searchInput) {
+    searchInput.value = '';
+    setTimeout(() => searchInput.focus(), 150);
+  }
+
+  // Clear URL query parameters
+  try {
+    window.history.pushState({}, '', window.location.pathname);
+  } catch (e) {}
+
+  showToast('Search again. Please enter a quotation number.');
+}
+
+// Client-side fallback to create a fresh quotation master template
+function createBlankQuotationMaster(vbeln, posnr = '000020') {
+  costData = {
+    _is_user_created: true,
+    Vbeln: vbeln,
+    Posnr: posnr,
+    Approve: '',
+    Zzall: 'X',
+    Cnv: 'USD',
+    Cnvf: '87.000',
+    Nmachreq: 0,
+    Npeicbnd: 0,
+    Sam: '0.00',
+    Making: '0.000',
+    Overhead: '0.000',
+    Zwast: '3.000',
+    Subtot: '0.0000',
+    MarkupP: '20.000',
+    Markup: '0.00',
+    Commision: '0.000',
+    CommVal: '0.00',
+    AddCost: '0.000',
+    Discount: '0.000',
+    Sellprice: '0.000',
+    Quota: '0.000',
+    to_Fabric: { results: [] },
+    to_Trim: { results: [] },
+    to_Packing: { results: [] },
+    to_Special: { results: [] }
+  };
+  currentVbeln = vbeln;
+  currentPosnr = posnr;
 }
 
 async function handleLandingSearchSubmit() {
@@ -827,11 +1077,11 @@ async function handleLandingSearchSubmit() {
   const errorBanner = document.getElementById('landing-error-banner');
 
   const vbeln = (searchInput?.value || '').trim();
-  const posnr = '000010';
+  const posnr = '000020';
 
   if (!vbeln) {
     if (errorBanner) {
-      errorBanner.textContent = 'Please enter a sales order or quotation number.';
+      errorBanner.textContent = 'Please enter a quotation number.';
       errorBanner.classList.add('active');
     }
     searchInput?.focus();
@@ -847,6 +1097,7 @@ async function handleLandingSearchSubmit() {
     submitBtn.disabled = true;
   }
 
+  // Attempt fetch from backend
   const success = await fetchCostSheet(vbeln, posnr);
 
   if (submitBtn) {
@@ -860,18 +1111,19 @@ async function handleLandingSearchSubmit() {
     if (landing) landing.classList.add('hidden');
     if (mainWin) mainWin.style.display = 'flex';
 
+    // Keep nav search bar in sync
+    const navSearch = document.getElementById('nav-search-input');
+    if (navSearch) navSearch.value = vbeln;
+
     // Update URL query parameters cleanly without reload
     try {
       const newUrl = `${window.location.pathname}?vbeln=${encodeURIComponent(vbeln)}&posnr=${encodeURIComponent(posnr)}`;
       window.history.pushState({ vbeln, posnr }, '', newUrl);
     } catch (e) {}
-  } else {
-    if (errorBanner) {
-      errorBanner.textContent = `Could not load quotation "${vbeln}". Please check the number or try preset 3000008.`;
-      errorBanner.classList.add('active');
-    }
   }
 }
+
+
 
 // Studio Section / Stage Tab Navigator
 function switchStudioTab(tabId) {
@@ -940,7 +1192,7 @@ function openSearchModal() {
 window.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const vbeln = urlParams.get('vbeln');
-  const posnr = urlParams.get('posnr') || '000010';
+  const posnr = urlParams.get('posnr') || '000020';
 
   if (vbeln) {
     // If quotation was passed in URL, load it directly
