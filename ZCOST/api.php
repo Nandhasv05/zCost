@@ -37,23 +37,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // GET or POST query parameter handler
 $vbeln = trim((string)($_GET['vbeln'] ?? $_POST['vbeln'] ?? ''));
-$posnr = trim((string)($_GET['posnr'] ?? $_POST['posnr'] ?? '000020'));
+$posnr = trim((string)($_GET['posnr'] ?? $_POST['posnr'] ?? '000010'));
 $cache = isset($_GET['cache']) && ($_GET['cache'] === '1' || $_GET['cache'] === 'true');
 $create = isset($_GET['create']) && ($_GET['create'] === '1' || $_GET['create'] === 'true')
        || (isset($_GET['action']) && $_GET['action'] === 'create')
        || (isset($_POST['action']) && $_POST['action'] === 'create');
 
-if (empty($vbeln)) {
-    $vbeln = '3000008';
-}
+
 if (empty($posnr)) {
-    $posnr = '000020';
+    $posnr = '000010';
 }
 
 if ($create) {
     $result = $client->createQuotationMaster((string)$vbeln, (string)$posnr);
 } else {
-    $result = $client->getCostSheet((string)$vbeln, (string)$posnr, $cache, false);
+    $result = $client->getCostSheet((string)$vbeln, (string)$posnr);
 }
 
 echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

@@ -6,7 +6,7 @@
 let costData = null;
 let isEditMode = false;
 let currentVbeln = '3000008';
-let currentPosnr = '000020';
+let currentPosnr = '000010';
 
 // Format Helpers
 function num(val, dec = 2) {
@@ -87,18 +87,95 @@ function updateStatus(msg, type = 'info') {
   }
 }
 
-function showToast(msg, isError = false) {
-  let toast = document.getElementById('sap-toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'sap-toast';
-    toast.className = 'sap-toast';
-    document.body.appendChild(toast);
+// Header-Side Colorful Notification Modal / Toast System
+function showToast(msg, type = null) {
+  let toastType = 'info';
+  let title = 'Information';
+
+  // Determine type
+  if (typeof type === 'boolean') {
+    toastType = type ? 'error' : 'info';
+  } else if (typeof type === 'string' && type) {
+    toastType = type.toLowerCase();
+  } else {
+    // Smart deduction from message content
+    const lower = String(msg).toLowerCase();
+    if (lower.includes('error') || lower.includes('fail') || lower.includes('rejected') || lower.includes('aborted') || lower.includes('cannot') || lower.includes('limit of')) {
+      toastType = 'error';
+    } else if (lower.includes('success') || lower.includes('saved') || lower.includes('approved') || lower.includes('created') || lower.includes('loaded')) {
+      toastType = 'success';
+    } else if (lower.includes('search') || lower.includes('warn') || lower.includes('please') || lower.includes('not found') || lower.includes('required') || lower.includes('must be')) {
+      toastType = 'warning';
+    } else {
+      toastType = 'info';
+    }
   }
-  toast.className = 'sap-toast' + (isError ? ' error' : '');
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 3500);
+
+  // Titles
+  if (toastType === 'success') title = 'Success';
+  else if (toastType === 'error') title = 'Validation Error';
+  else if (toastType === 'warning' || toastType === 'warn') { toastType = 'warning'; title = 'Notice'; }
+  else { toastType = 'info'; title = 'Information'; }
+
+  // Header-Side Toast Container
+  let container = document.getElementById('sap-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'sap-toast-container';
+    container.className = 'sap-toast-container';
+    document.body.appendChild(container);
+  }
+
+  // Clear existing toasts if stack grows beyond 3
+  while (container.children.length >= 3) {
+    container.removeChild(container.firstChild);
+  }
+
+  // Choose Icon SVG
+  let iconSvg = '';
+  if (toastType === 'success') {
+    iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`;
+  } else if (toastType === 'error') {
+    iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`;
+  } else if (toastType === 'warning') {
+    iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+  } else {
+    iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+  }
+
+  const toastCard = document.createElement('div');
+  toastCard.className = `sap-toast-card sap-toast-${toastType}`;
+  toastCard.innerHTML = `
+    <div class="sap-toast-icon-badge">${iconSvg}</div>
+    <div class="sap-toast-content">
+      <div class="sap-toast-title">${escapeHtml(title)}</div>
+      <div class="sap-toast-msg">${escapeHtml(msg)}</div>
+    </div>
+    <button type="button" class="sap-toast-close" title="Dismiss" aria-label="Dismiss">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  `;
+
+  const dismiss = () => {
+    toastCard.classList.remove('show');
+    setTimeout(() => {
+      if (toastCard.parentElement) toastCard.remove();
+    }, 250);
+  };
+
+  const closeBtn = toastCard.querySelector('.sap-toast-close');
+  if (closeBtn) closeBtn.addEventListener('click', dismiss);
+
+  container.appendChild(toastCard);
+
+  requestAnimationFrame(() => {
+    toastCard.classList.add('show');
+  });
+
+  setTimeout(dismiss, 4200);
 }
 
 let pendingNotFoundQuotation = null;
@@ -148,6 +225,212 @@ async function fetchCostSheet(vbeln, posnr) {
   }
 }
 
+// Validation Engine for SAP Fields (DDIC ZCOSTH, zcosti, ZCOSTIP from ZCost.xlsx)
+function validateField(inputEl, type, extra) {
+  if (!inputEl) return true;
+  let val = inputEl.value;
+  let isValid = true;
+  let message = '';
+
+  switch (type) {
+    case 'char4': // wid_siz (CHAR4) - strictly limit to 4 characters
+      if (val && val.length > 4) {
+        inputEl.value = val.slice(0, 4);
+        val = inputEl.value;
+      }
+      if (val && val.length > 4) {
+        isValid = false;
+        message = 'Max 4 characters allowed (SAP CHAR4)';
+      }
+      break;
+
+    case 'matnr': // item (CHAR40)
+    case 'maktx': // maktx (CHAR40)
+      if (val && val.length > 40) {
+        inputEl.value = val.slice(0, 40);
+        val = inputEl.value;
+      }
+      if (val && val.length > 40) {
+        isValid = false;
+        message = 'Max 40 characters allowed (SAP CHAR40)';
+      }
+      break;
+
+    case 'vbeln': // Sales Order (CHAR10)
+      if (val && val.length > 10) {
+        inputEl.value = val.slice(0, 10);
+        val = inputEl.value;
+      }
+      if (!val || val.trim() === '') {
+        isValid = false;
+        message = 'Sales Order Number is required (SAP CHAR10)';
+      }
+      break;
+
+    case 'numc6': // Item/Posnr (NUMC6)
+      if (!/^\d*$/.test(val)) {
+        inputEl.value = val.replace(/\D/g, '').slice(0, 6);
+        val = inputEl.value;
+      }
+      if (val && val.length > 6) {
+        inputEl.value = val.slice(0, 6);
+      }
+      if (!val || val.length === 0) {
+        isValid = false;
+        message = 'Item number required (6 digits NUMC)';
+      }
+      break;
+
+    case 'waers': // Currency code (WAERS CHAR5)
+      val = val.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5);
+      inputEl.value = val;
+      if (val.length < 2 || val.length > 5) {
+        isValid = false;
+        message = 'Currency must be 2-5 uppercase letters (e.g. USD, EUR, INR)';
+      }
+      break;
+
+    case 'int': { // Integer with max limit (e.g. 255 for INT1, 32767 for INT2)
+      const numVal = parseInt(val, 10);
+      const maxLimit = typeof extra === 'number' ? extra : 32767;
+      if (isNaN(numVal) || numVal < 0 || numVal > maxLimit) {
+        isValid = false;
+        message = `Must be an integer between 0 and ${maxLimit}`;
+      }
+      break;
+    }
+
+    case 'percent': { // Percentage 0 - 100
+      const numVal = parseFloat(val);
+      if (isNaN(numVal) || numVal < 0 || numVal > 100) {
+        isValid = false;
+        message = 'Percentage must be between 0.00% and 100.00%';
+      }
+      break;
+    }
+
+    case 'decimal': { // Non-negative decimal number
+      const numVal = parseFloat(val);
+      if (isNaN(numVal) || numVal < 0) {
+        isValid = false;
+        message = 'Must be a valid positive number';
+      }
+      break;
+    }
+
+    default:
+      break;
+  }
+
+  if (!isValid) {
+    inputEl.classList.add('is-invalid');
+    inputEl.setAttribute('title', message);
+  } else {
+    inputEl.classList.remove('is-invalid');
+    inputEl.removeAttribute('title');
+  }
+
+  return isValid;
+}
+
+// Validate entire costing sheet before sending to SAP
+function validateCostSheet() {
+  // 1. Check all current DOM inputs with is-invalid
+  const invalidEls = document.querySelectorAll('.is-invalid');
+  if (invalidEls.length > 0) {
+    const firstInvalid = invalidEls[0];
+    firstInvalid.focus();
+    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const msg = firstInvalid.getAttribute('title') || 'Please fix highlighted validation errors.';
+    showToast(`Validation error: ${msg}`, true);
+    return false;
+  }
+
+  // 2. Validate Header Fields
+  if (!costData.Vbeln || costData.Vbeln.trim().length === 0 || costData.Vbeln.length > 10) {
+    showToast('Validation Error: Sales Order (VBELN) must be 1 to 10 characters', true);
+    document.getElementById('hdr-vbeln')?.focus();
+    return false;
+  }
+  if (!costData.Posnr || !/^\d{1,6}$/.test(costData.Posnr.trim())) {
+    showToast('Validation Error: Item (POSNR) must be numeric up to 6 digits', true);
+    document.getElementById('hdr-posnr')?.focus();
+    return false;
+  }
+  if (!costData.Cnv || costData.Cnv.trim().length < 2 || costData.Cnv.length > 5) {
+    showToast('Validation Error: Currency (CNV) must be 2 to 5 letters', true);
+    document.getElementById('hdr-cnv')?.focus();
+    return false;
+  }
+  if (parseNum(costData.Cnvf) <= 0) {
+    showToast('Validation Error: Currency Rate (CNVF) must be greater than 0', true);
+    document.getElementById('hdr-cnvf')?.focus();
+    return false;
+  }
+
+  // 3. Validate Commercial Parameters
+  if (parseInt(costData.Nmachreq, 10) < 0 || parseInt(costData.Nmachreq, 10) > 255) {
+    showToast('Validation Error: No Of Machines Req must be between 0 and 255 (SAP INT1)', true);
+    document.getElementById('form-nmachreq')?.focus();
+    return false;
+  }
+  if (parseInt(costData.Npeicbnd, 10) < 0 || parseInt(costData.Npeicbnd, 10) > 32767) {
+    showToast('Validation Error: No Of Pieces per Band must be between 0 and 32767 (SAP INT2)', true);
+    document.getElementById('form-npeicbnd')?.focus();
+    return false;
+  }
+
+  // 4. Validate Line Items (Fabric, Trim, Packing)
+  const categories = [
+    { type: 'fabric', label: 'Fabric', items: costData.to_Fabric?.results || [] },
+    { type: 'trim', label: 'Trim', items: costData.to_Trim?.results || [] },
+    { type: 'packing', label: 'Packing', items: costData.to_Packing?.results || [] }
+  ];
+
+  for (const cat of categories) {
+    for (let i = 0; i < cat.items.length; i++) {
+      const row = cat.items[i];
+      const sl = row.Slno || (i + 1);
+
+      // Width / Size (WidSiz) strict max 4 chars
+      if (row.WidSiz && String(row.WidSiz).length > 4) {
+        showToast(`${cat.label} Row ${sl}: Width/Size "${row.WidSiz}" exceeds SAP limit of 4 characters (CHAR4)`, true);
+        return false;
+      }
+      // Material Description max 40 chars
+      if (row.Maktx && String(row.Maktx).length > 40) {
+        showToast(`${cat.label} Row ${sl}: Material description exceeds 40 characters (CHAR40)`, true);
+        return false;
+      }
+      // Waste % 0 - 100
+      const waste = parseNum(row.Wste);
+      if (waste < 0 || waste > 100) {
+        showToast(`${cat.label} Row ${sl}: Waste% must be between 0 and 100%`, true);
+        return false;
+      }
+      // Freight % 0 - 100
+      const fright = parseNum(row.Fright);
+      if (fright < 0 || fright > 100) {
+        showToast(`${cat.label} Row ${sl}: Freight% must be between 0 and 100%`, true);
+        return false;
+      }
+      // Duty % 0 - 100
+      const duty = parseNum(row.Duty);
+      if (duty < 0 || duty > 100) {
+        showToast(`${cat.label} Row ${sl}: Duty% must be between 0 and 100%`, true);
+        return false;
+      }
+      // Net must be non-negative
+      if (parseNum(row.Net) < 0) {
+        showToast(`${cat.label} Row ${sl}: Net consumption cannot be negative`, true);
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 // POST / Save Cost Sheet to SAP
 async function saveCostSheet() {
   if (!costData) return;
@@ -155,6 +438,12 @@ async function saveCostSheet() {
   // Gather current inputs from UI
   collectHeaderInputs();
   recalculateAll();
+
+  // Validate before sending to SAP
+  if (!validateCostSheet()) {
+    updateStatus('Save aborted: please resolve validation errors.', 'warn');
+    return;
+  }
 
   updateStatus(`Posting Costing Sheet ${costData.Vbeln} to SAP ZCOST_SRV...`, 'info');
   showToast('Posting to SAP ZCOST_SRV/ZCOSTHSet...');
@@ -336,57 +625,73 @@ function renderTable(type, rows) {
           <div class="cell-dropdown-wrap">
             <span class="cell-arrow">▼</span>
             <input type="text" class="sap-table-cell-input cell-coral cell-text" title="${escapeHtml(item)}" value="${escapeHtml(item)}"
+                   maxlength="40"
                    style="min-width:${Math.max(String(item).length, 4)}ch"
+                   oninput="validateField(this, 'matnr')"
                    onchange="updateRowField('${type}', ${idx}, 'Item', this.value)" ${!isEditMode ? 'readonly' : ''}>
           </div>
         </td>
         <td class="col-desc">
           <input type="text" class="sap-table-cell-input cell-coral cell-text" title="${escapeHtml(maktx)}" value="${escapeHtml(maktx)}"
+                 maxlength="40"
                  style="min-width:${Math.max(String(maktx).length, 12)}ch"
+                 oninput="validateField(this, 'maktx')"
                  onchange="updateRowField('${type}', ${idx}, 'Maktx', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-text">
-          <input type="text" class="sap-table-cell-input col-center cell-amber cell-text" title="${escapeHtml(width)}" value="${escapeHtml(width)}"
+          <input type="text" class="sap-table-cell-input col-center cell-amber cell-text" title="WA_ZCOST_S-WID_SIZ" value="${escapeHtml(width)}"
+                 maxlength="4" placeholder="W/S"
                  style="min-width:${Math.max(String(width).length, 4)}ch"
+                 oninput="validateField(this, 'char4')"
                  onchange="updateRowField('${type}', ${idx}, 'WidSiz', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num">
-          <input type="text" class="sap-table-cell-input col-num cell-coral" value="${num(net, 4)}" 
-                 onchange="updateRowField('${type}', ${idx}, 'Net', this.value)" ${!isEditMode ? 'readonly' : ''}>
+          <input type="text" class="sap-table-cell-input col-num cell-coral" title="WA_ZCOST_S-WSTE" value="${num(waste, 2)}" 
+                 oninput="validateField(this, 'percent')"
+                 onchange="updateRowField('${type}', ${idx}, 'Wste', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num">
-          <input type="text" class="sap-table-cell-input col-num cell-coral" value="${num(waste, 2)}" 
-                 onchange="updateRowField('${type}', ${idx}, 'Wste', this.value)" ${!isEditMode ? 'readonly' : ''}>
+          <input type="text" class="sap-table-cell-input col-num cell-coral" title="WA_ZCOST_S-NET" value="${num(net, 4)}" 
+                 oninput="validateField(this, 'decimal', 4)"
+                 onchange="updateRowField('${type}', ${idx}, 'Net', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num cell-cyan" id="cell-gross-${type}-${idx}">${num(gross, 4)}</td>
         <td class="col-center">
-          <input type="text" class="sap-table-cell-input col-center cell-curr-badge" style="width:48px;" value="${escapeHtml(curr)}" 
+          <input type="text" class="sap-table-cell-input col-center cell-curr-badge" style="width:48px; text-transform:uppercase;" value="${escapeHtml(curr)}" 
+                 maxlength="5"
+                 oninput="this.value = this.value.toUpperCase(); validateField(this, 'waers')"
                  onchange="updateRowField('${type}', ${idx}, 'Curunit', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num">
           <input type="text" class="sap-table-cell-input col-num" style="width:50px;" value="${num(convr, 2)}" 
+                 oninput="validateField(this, 'decimal', 2)"
                  onchange="updateRowField('${type}', ${idx}, 'Convr', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num">
           <input type="text" class="sap-table-cell-input col-num" value="${num(purp, 4)}" 
+                 oninput="validateField(this, 'decimal', 4)"
                  onchange="updateRowField('${type}', ${idx}, 'Purp', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num">
           <input type="text" class="sap-table-cell-input col-num" value="${num(freight, 2)}" 
+                 oninput="validateField(this, 'percent')"
                  onchange="updateRowField('${type}', ${idx}, 'Fright', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num">
           <input type="text" class="sap-table-cell-input col-num" value="${num(duty, 2)}" 
+                 oninput="validateField(this, 'percent')"
                  onchange="updateRowField('${type}', ${idx}, 'Duty', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num">
           <input type="text" class="sap-table-cell-input col-num cell-blue" value="${num(cost, 4)}" 
+                 oninput="validateField(this, 'decimal', 4)"
                  onchange="updateRowField('${type}', ${idx}, 'Rate', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num cell-dark" id="cell-totalinr-${type}-${idx}">${num(totalinr, 4)}</td>
         <td class="col-num cell-blue" id="cell-totalfr-${type}-${idx}">${num(totalfr, 4)}</td>
         <td class="col-num">
           <input type="text" class="sap-table-cell-input col-num cell-fin" value="${num(fincost, 2)}" 
+                 oninput="validateField(this, 'decimal', 2)"
                  onchange="updateRowField('${type}', ${idx}, 'Fincost', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
       </tr>
@@ -404,7 +709,20 @@ function updateRowField(type, idx, field, rawValue) {
   const row = list[idx];
   const numFields = ['Net', 'Wste', 'Gross', 'Convr', 'Purp', 'Fright', 'Duty', 'Rate', 'Totalinr', 'Totalfr', 'Fincost'];
   if (numFields.includes(field)) {
-    row[field] = parseNum(rawValue).toFixed(4);
+    let n = parseNum(rawValue);
+    if (['Wste', 'Fright', 'Duty'].includes(field)) {
+      if (n < 0) n = 0;
+      if (n > 100) n = 100;
+    } else {
+      if (n < 0) n = 0;
+    }
+    row[field] = n.toFixed(4);
+  } else if (field === 'WidSiz') {
+    row[field] = String(rawValue || '').slice(0, 4);
+  } else if (field === 'Item' || field === 'Maktx') {
+    row[field] = String(rawValue || '').slice(0, 40);
+  } else if (field === 'Curunit') {
+    row[field] = String(rawValue || 'INR').toUpperCase().slice(0, 5);
   } else {
     row[field] = rawValue;
   }
@@ -499,7 +817,7 @@ function renderBottomForm() {
   // Currency label for column 4
   const sellPriceFrLabel = document.getElementById('label-sellprice-fr');
   if (sellPriceFrLabel) {
-    sellPriceFrLabel.textContent = `SELL-PRICE-${costData.Cnv || 'EUR'}`;
+    sellPriceFrLabel.innerHTML = `QOUC ${costData.Cnv || 'EUR'}<small>QOUC</small>`;
   }
 }
 
@@ -717,7 +1035,7 @@ function ensureBlankSheet() {
   }
   costData = {
     Vbeln: document.getElementById('hdr-vbeln')?.value.trim() || '',
-    Posnr: document.getElementById('hdr-posnr')?.value.trim() || '000020',
+    Posnr: document.getElementById('hdr-posnr')?.value.trim() || '000010',
     Cnv: document.getElementById('hdr-cnv')?.value.trim() || 'EUR',
     Cnvf: document.getElementById('hdr-cnvf')?.value || '90.00',
     Approve: '',
@@ -748,7 +1066,7 @@ function addRow(type) {
 
   const newRow = {
     Vbeln: costData.Vbeln || '',
-    Posnr: costData.Posnr || '000020',
+    Posnr: costData.Posnr || '000010',
     Zline: String(list.length + 1).padStart(6, '0'),
     Item: '',
     Maktx: '',
@@ -820,15 +1138,15 @@ function exportTableToCSV(type) {
     return;
   }
 
-  const headers = ['SL', 'Section', 'Item', 'Material desc', 'Width', 'Net', 'Waste', 'Gross', 'Curr', 'E.curr', 'P.Price', 'Freight', 'Duty', 'Cost', 'Total in INR', `TT in-${costData.Cnv || 'EUR'}`, 'Fin'];
+  const headers = ['SL', 'Section', 'ITEM', 'MAKTX', 'WID_SIZ', 'WSTE', 'NET', 'GROSS', 'CURUNIT', 'CONVR', 'PURP', 'FRIGHT', 'DUTY', 'RATE', 'TOTALINR', 'TOTALFR', 'FINCOST'];
   const rows = list.map((r, i) => [
     r.Slno || (i + 1),
     `"${(r.Zsection || '').replace(/"/g, '""')}"`,
     `"${(r.Item || '').replace(/"/g, '""')}"`,
     `"${(r.Maktx || '').replace(/"/g, '""')}"`,
     r.WidSiz || '',
-    r.Net || 0,
     r.Wste || 0,
+    r.Net || 0,
     r.Gross || 0,
     r.Curunit || '',
     r.Convr || 1,
@@ -1038,7 +1356,7 @@ function handleCancelSearchAgain() {
 }
 
 // Client-side fallback to create a fresh quotation master template
-function createBlankQuotationMaster(vbeln, posnr = '000020') {
+function createBlankQuotationMaster(vbeln, posnr = '000010') {
   costData = {
     _is_user_created: true,
     Vbeln: vbeln,
@@ -1077,7 +1395,7 @@ async function handleLandingSearchSubmit() {
   const errorBanner = document.getElementById('landing-error-banner');
 
   const vbeln = (searchInput?.value || '').trim();
-  const posnr = '000020';
+  const posnr = '000010';
 
   if (!vbeln) {
     if (errorBanner) {
@@ -1192,7 +1510,7 @@ function openSearchModal() {
 window.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const vbeln = urlParams.get('vbeln');
-  const posnr = urlParams.get('posnr') || '000020';
+  const posnr = urlParams.get('posnr') || '000010';
 
   if (vbeln) {
     // If quotation was passed in URL, load it directly

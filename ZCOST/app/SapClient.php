@@ -1,8 +1,8 @@
 <?php
 /**
  * AUTHOR: NANDHAKUMAR SV 
- * LAST EDIT : 23/10/2026
- * DESC : create new files Functions
+ * LAST EDIT : 26/10/2026
+ * DESC : Pure Live SAP OData Client - No local storage/database
  */
 declare(strict_types=1);
 
@@ -27,10 +27,7 @@ class SapClient
      */
     private function cleanVbeln(string $vbeln): string
     {
-        $v = trim($vbeln);
-        // Note: 3000008 is 7 digits, 22002311 is 8 digits. Some users want unpadded, some padded.
-        // Let's keep digits as entered, or if 10-digit standard SAP, leave as-is.
-        return $v;
+        return trim($vbeln);
     }
 
     /**
@@ -46,37 +43,14 @@ class SapClient
     }
 
     /**
-     * Fetch Costing Sheet by Vbeln and Posnr
+     * Fetch Costing Sheet directly from Live SAP OData (No Local Cache / No Local Database)
      */
-    public function getCostSheet(string $vbeln = '3000008', string $posnr = '000020', bool $forceCache = false, bool $createIfMissing = false): array
+    public function getCostSheet(string $vbeln = '3000008', string $posnr = '000010'): array
     {
         $vbelnClean = $this->cleanVbeln($vbeln);
         $posnrClean = $this->cleanPosnr($posnr);
 
-        // 1. Check local saved master first
-        $localResult = $this->loadLocalSample($vbelnClean, $posnrClean, 'Loaded from local database', false);
-        if ($localResult['success']) {
-            return $localResult;
-        }
-
-        // If item 000020 does not have a created local master, treat as not found for user scenario test
-        if ($posnrClean === '000020' && !$createIfMissing) {
-            return [
-                'success' => false,
-                'not_found' => true,
-                'vbeln' => $vbelnClean,
-                'posnr' => $posnrClean,
-                'error' => "Quotation master not found for {$vbelnClean} (Item {$posnrClean})",
-                'data' => null
-            ];
-        }
-
-        if ($forceCache) {
-            return $localResult;
-        }
-
-
-        // 2. Query SAP OData Service
+        // Query Live SAP OData Service
         $baseUrl = rtrim($this->config['sap']['base_url'] ?? 'http://APP-PROD.evolvclothing.com:8000', '/');
         $service = $this->config['sap']['service'] ?? '/sap/opu/odata/sap/ZCOST_SRV/ZCOSTHSet';
         $expand = $this->config['defaults']['expand'] ?? 'to_Fabric,to_Trim,to_Special,to_Packing';
@@ -97,7 +71,7 @@ class SapClient
             curl_setopt($ch, CURLOPT_RESOLVE, $this->config['sap']['resolve']);
         }
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $this->config['sap']['timeout'] ?? 15);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $this->config['sap']['timeout'] ?? 20);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept: application/json',
@@ -110,54 +84,44 @@ class SapClient
         curl_close($ch);
 
         if ($response !== false && $httpCode === 200) {
-            $decoded = json_decode($response, true);
-            if (isset($decoded['d'])) {
-                $fabResults = $decoded['d']['to_Fabric']['results'] ?? [];
-                $trimResults = $decoded['d']['to_Trim']['results'] ?? [];
-                $packResults = $decoded['d']['to_Packing']['results'] ?? [];
-
-                $fabCount = is_array($fabResults) ? count($fabResults) : 0;
-                $trimCount = is_array($trimResults) ? count($trimResults) : 0;
-                $packCount = is_array($packResults) ? count($packResults) : 0;
-
-                $hasItems = ($fabCount + $trimCount + $packCount) > 0;
-                @file_put_contents(__DIR__ . '/../debug.txt', "fab: $fabCount, trim: $trimCount, pack: $packCount, hasItems: " . ($hasItems ? 'true' : 'false') . "\n");
-
-                // If SAP actually has a populated costing master with line items, save and return it
-                if ($hasItems) {
-
-                    $this->saveLocalSample($vbelnClean, $decoded['d'], $posnrClean);
-                    return [
-                        'success' => true,
-                        'source' => 'LIVE_SAP',
-                        'http_code' => $httpCode,
-                        'url' => $url,
-                        'timestamp' => date('Y-m-d H:i:s'),
-                        'data' => $decoded['d']
-                    ];
-                }
+            $decoded = json_decode((string)$response, true);
+            if (isset($decoded['d']) && is_array($decoded['d'])) {
+                return [
+                    'success' => true,
+                    'source' => 'LIVE_SAP',
+                    'http_code' => $httpCode,
+                    'url' => $url,
+                    'timestamp' => date('Y-m-d H:i:s'),
+                    'data' => $decoded['d']
+                ];
             }
-
         }
 
-        // 3. Neither local file nor live SAP line items exist
-        if ($createIfMissing) {
-            return $this->createNewQuotationMaster($vbelnClean, $posnrClean, "Created new quotation master for {$vbelnClean}");
+        // Parse any error message returned from SAP
+        $errorMessage = "Quotation master not found in live SAP for {$vbelnClean} (Item {$posnrClean})";
+        if (!empty($response)) {
+            $errDecoded = json_decode((string)$response, true);
+            if (isset($errDecoded['error']['message']['value'])) {
+                $errorMessage = $errDecoded['error']['message']['value'];
+            }
+        } elseif ($curlError) {
+            $errorMessage = "Live SAP connection error: {$curlError}";
         }
 
         return [
             'success' => false,
             'not_found' => true,
+            'source' => 'LIVE_SAP',
+            'http_code' => $httpCode,
             'vbeln' => $vbelnClean,
             'posnr' => $posnrClean,
-            'error' => "Quotation master not found for {$vbelnClean} (Item {$posnrClean})",
+            'error' => $errorMessage,
             'data' => null
         ];
     }
 
-
     /**
-     * POST Costing Sheet to SAP OData service
+     * POST Costing Sheet directly to Live SAP OData service (No Local Cache / No Local Database)
      */
     public function saveCostSheet(array $payload): array
     {
@@ -178,7 +142,7 @@ class SapClient
             'X-CSRF-Token: Fetch',
             'Accept: application/json'
         ]);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 12);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 6);
 
         $fetchResponse = curl_exec($ch);
@@ -199,9 +163,29 @@ class SapClient
 
         // Clean payload structure for deep insert
         $postData = $payload;
-        // In OData V2, if payload is wrapped in {"d": ...}, keep or unwrap according to service
         if (isset($postData['d'])) {
             $postData = $postData['d'];
+        }
+
+        // Enforce SAP DDIC field constraints on line items (ZCOST.xlsx specifications)
+        foreach (['to_Fabric', 'to_Trim', 'to_Packing', 'to_Special'] as $navProp) {
+            if (isset($postData[$navProp]['results']) && is_array($postData[$navProp]['results'])) {
+                foreach ($postData[$navProp]['results'] as &$row) {
+                    if (isset($row['WidSiz'])) {
+                        $row['WidSiz'] = substr(trim((string)$row['WidSiz']), 0, 4);
+                    }
+                    if (isset($row['Item'])) {
+                        $row['Item'] = substr(trim((string)$row['Item']), 0, 40);
+                    }
+                    if (isset($row['Maktx'])) {
+                        $row['Maktx'] = substr(trim((string)$row['Maktx']), 0, 40);
+                    }
+                    if (isset($row['Curunit'])) {
+                        $row['Curunit'] = substr(strtoupper(trim((string)$row['Curunit'])), 0, 5);
+                    }
+                }
+                unset($row);
+            }
         }
 
         $jsonPayload = json_encode($postData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -228,18 +212,13 @@ class SapClient
         }
         curl_setopt($chPost, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($chPost, CURLOPT_HTTPHEADER, $postHeaders);
-        curl_setopt($chPost, CURLOPT_TIMEOUT, 20);
+        curl_setopt($chPost, CURLOPT_TIMEOUT, 25);
         curl_setopt($chPost, CURLOPT_CONNECTTIMEOUT, 6);
 
         $postRes = curl_exec($chPost);
         $postHttpCode = curl_getinfo($chPost, CURLINFO_HTTP_CODE);
         $postError = curl_error($chPost);
         curl_close($chPost);
-
-        // Also persist locally so edits are preserved
-        $vbeln = $postData['Vbeln'] ?? '3000008';
-        $posnr = $postData['Posnr'] ?? '000020';
-        $this->saveLocalSample($vbeln, $postData, $posnr);
 
         if ($postHttpCode === 201 || $postHttpCode === 200) {
             $resDecoded = json_decode((string)$postRes, true);
@@ -262,46 +241,27 @@ class SapClient
         }
 
         return [
-            'success' => true, // Still marked success for user session persistence
-            'saved_locally' => true,
-            'source' => 'LOCAL_PERSIST',
+            'success' => false,
+            'source' => 'LIVE_SAP',
             'sap_http_code' => $postHttpCode,
             'sap_error' => $errorMessage,
-            'message' => "Saved in local session. (SAP response: $errorMessage)",
+            'message' => "SAP Save Failed: $errorMessage",
             'data' => $postData
         ];
     }
 
+    /**
+     * Create In-Memory Quotation Master Template (No Local Disk Storage)
+     */
     public function createQuotationMaster(string $vbeln, string $posnr): array
     {
         $vbelnClean = $this->cleanVbeln($vbeln);
         $posnrClean = $this->cleanPosnr($posnr);
-        return $this->createNewQuotationMaster($vbelnClean, $posnrClean, "Created new quotation master for {$vbelnClean}");
-    }
 
-    private function saveLocalSample(string $vbeln, array $data, string $posnr = '000020'): void
-    {
-        $dir = __DIR__ . '/../database/quotations';
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0777, true);
-        }
-
-        $wrapper = ['d' => $data];
-        $json = json_encode($wrapper, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-        @file_put_contents($dir . '/' . $vbeln . '_' . $posnr . '.json', $json);
-
-        if ($vbeln === '3000008') {
-            @file_put_contents(__DIR__ . '/../sample_3000008.json', $json);
-        }
-    }
-
-    private function createNewQuotationMaster(string $vbeln, string $posnr, string $note = ''): array
-    {
         $newMaster = [
             '_is_user_created' => true,
-            'Vbeln' => $vbeln,
-            'Posnr' => $posnr ?: '000020',
+            'Vbeln' => $vbelnClean,
+            'Posnr' => $posnrClean ?: '000010',
             'Approve' => '',
             'Zzall' => 'X',
             'Cnv' => 'USD',
@@ -335,74 +295,14 @@ class SapClient
             ]
         ];
 
-        // Save newly initialized quotation master so future requests read it
-        $this->saveLocalSample($vbeln, $newMaster, $posnr);
-
         return [
             'success' => true,
             'is_new' => true,
-            'source' => 'NEW_MASTER',
-            'note' => $note ?: "Created new quotation master for {$vbeln}",
+            'source' => 'LIVE_SAP',
+            'note' => "Template created for {$vbelnClean} (In-Memory)",
             'http_code' => 200,
             'timestamp' => date('Y-m-d H:i:s'),
             'data' => $newMaster
         ];
     }
-
-    private function loadLocalSample(string $vbeln, string $posnr, string $note, bool $createIfMissing = false): array
-    {
-        $qDir = __DIR__ . '/../database/quotations';
-        $candidates = [
-            $qDir . '/' . $vbeln . '_' . $posnr . '.json',
-        ];
-
-        if ($vbeln === '3000008' || strpos($vbeln, '3000008') !== false) {
-            $candidates[] = $qDir . '/3000008_000010.json';
-            $candidates[] = __DIR__ . '/../sample_3000008.json';
-        }
-
-        foreach ($candidates as $path) {
-            if (file_exists($path)) {
-                $raw = @file_get_contents($path);
-                $raw = preg_replace('/^\xEF\xBB\xBF/', '', (string)$raw);
-                $decoded = json_decode((string)$raw, true);
-                if (isset($decoded['d'])) {
-                    $d = $decoded['d'];
-                    $hasLines = !empty($d['_is_user_created'])
-                             || (!empty($d['to_Fabric']['results']) && is_array($d['to_Fabric']['results']) && count($d['to_Fabric']['results']) > 0)
-                             || (!empty($d['to_Trim']['results']) && is_array($d['to_Trim']['results']) && count($d['to_Trim']['results']) > 0)
-                             || (!empty($d['to_Packing']['results']) && is_array($d['to_Packing']['results']) && count($d['to_Packing']['results']) > 0);
-
-                    if ($hasLines) {
-                        return [
-                            'success' => true,
-                            'source' => 'CACHE',
-                            'note' => $note . " (from $path)",
-                            'http_code' => 200,
-                            'timestamp' => date('Y-m-d H:i:s'),
-                            'data' => $d
-                        ];
-                    }
-
-                }
-            }
-        }
-
-        if ($createIfMissing) {
-            return $this->createNewQuotationMaster($vbeln, $posnr, "Created new quotation master for {$vbeln}");
-        }
-
-        // Return not_found so frontend can prompt the user: [Yes, create] or [No, search again]
-        return [
-            'success' => false,
-            'not_found' => true,
-            'vbeln' => $vbeln,
-            'posnr' => $posnr,
-            'note' => $note,
-            'error' => "Quotation master not found for {$vbeln} (Item {$posnr})",
-            'data' => null
-        ];
-    }
 }
-
-?>

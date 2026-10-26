@@ -363,7 +363,9 @@ body.is-editing .sap-table-cell-select:not(:disabled):focus {
 .cost-form-col { display: flex; flex-direction: column; gap: 6px; }
 .cost-form-price { padding-left: 16px; border-left: 1px solid var(--line); }
 .cost-field { display: grid; grid-template-columns: minmax(0, 1fr) 112px; align-items: center; gap: 8px; min-height: 28px; }
-.cost-field > span { font-size: 12px; font-weight: 500; color: #334155; }
+.cost-field > span { display: flex; flex-direction: column; gap: 1px; font-size: 12px; font-weight: 500; color: #334155; line-height: 1.15; }
+.cost-field > span small,
+.sap-alv-table th small { display: block; font-size: 9px; font-weight: 600; color: #64748b; letter-spacing: 0.01em; }
 .cost-field input {
   height: 28px; width: 100%; border: 1px solid var(--line-strong); border-radius: 4px;
   background: #f8fafc; padding: 0 8px; font: 600 12px var(--mono); color: var(--ink); text-align: right; outline: none;
@@ -384,14 +386,177 @@ body.is-editing .cost-field input:not([readonly]) { background: #fff; border-col
 .studio-status-icon.error, .studio-status-icon.warn { background: #fef2f2; color: #dc2626; }
 .studio-sys-chip { height: 18px; padding: 0 8px; border-radius: 99px; border: 1px solid var(--line); background: var(--head); font: 600 10px var(--mono); color: var(--muted); display: inline-flex; align-items: center; }
 
+/* ==========================================================================
+   Header-Side Colorful Notification Toast System & Modals
+   ========================================================================== */
 .sap-toast {
-  position: fixed; right: 16px; bottom: 42px; z-index: 100000; max-width: 360px;
-  padding: 10px 12px; border-radius: 8px; background: var(--ink); color: #fff;
-  font-size: 13px; font-weight: 600; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
-  opacity: 0; visibility: hidden; transform: translateY(6px); transition: 0.18s ease;
+  display: none !important;
 }
-.sap-toast.show { opacity: 1; visibility: visible; transform: none; }
-.sap-toast.error { background: #991b1b; }
+
+.sap-toast-container {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 1000000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+  width: calc(100vw - 40px);
+  pointer-events: none;
+}
+
+.sap-toast-card {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 14px 34px -4px rgba(15, 23, 42, 0.16), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  opacity: 0;
+  transform: translateY(-20px) scale(0.95);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.sap-toast-card.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.sap-toast-icon-badge {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.sap-toast-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sap-toast-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 2px;
+  letter-spacing: -0.01em;
+}
+
+.sap-toast-msg {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.sap-toast-close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+  margin: -2px -4px 0 0;
+}
+.sap-toast-close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Success Theme (Vibrant Emerald) */
+.sap-toast-card.sap-toast-success {
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border-color: #86efac;
+  border-left: 4px solid #10b981;
+}
+.sap-toast-card.sap-toast-success .sap-toast-icon-badge {
+  background: #dcfce7;
+  color: #15803d;
+}
+.sap-toast-card.sap-toast-success .sap-toast-title {
+  color: #166534;
+}
+.sap-toast-card.sap-toast-success .sap-toast-msg {
+  color: #14532d;
+}
+.sap-toast-card.sap-toast-success .sap-toast-close {
+  color: #15803d;
+}
+
+/* Error Theme (Vibrant Crimson) */
+.sap-toast-card.sap-toast-error {
+  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+  border-color: #fca5a5;
+  border-left: 4px solid #ef4444;
+}
+.sap-toast-card.sap-toast-error .sap-toast-icon-badge {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.sap-toast-card.sap-toast-error .sap-toast-title {
+  color: #991b1b;
+}
+.sap-toast-card.sap-toast-error .sap-toast-msg {
+  color: #7f1d1d;
+}
+.sap-toast-card.sap-toast-error .sap-toast-close {
+  color: #b91c1c;
+}
+
+/* Warning / Notice Theme (Vibrant Amber / Orange) */
+.sap-toast-card.sap-toast-warning {
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  border-color: #fde68a;
+  border-left: 4px solid #f59e0b;
+}
+.sap-toast-card.sap-toast-warning .sap-toast-icon-badge {
+  background: #fef3c7;
+  color: #d97706;
+}
+.sap-toast-card.sap-toast-warning .sap-toast-title {
+  color: #92400e;
+}
+.sap-toast-card.sap-toast-warning .sap-toast-msg {
+  color: #78350f;
+}
+.sap-toast-card.sap-toast-warning .sap-toast-close {
+  color: #b45309;
+}
+
+/* Info Theme (Vibrant Sky / Royal Blue) */
+.sap-toast-card.sap-toast-info {
+  background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+  border-color: #bfdbfe;
+  border-left: 4px solid #3b82f6;
+}
+.sap-toast-card.sap-toast-info .sap-toast-icon-badge {
+  background: #dbeafe;
+  color: #2563eb;
+}
+.sap-toast-card.sap-toast-info .sap-toast-title {
+  color: #1e40af;
+}
+.sap-toast-card.sap-toast-info .sap-toast-msg {
+  color: #1e3a8a;
+}
+.sap-toast-card.sap-toast-info .sap-toast-close {
+  color: #2563eb;
+}
 
 @media (max-width: 1100px) {
   .cost-form { grid-template-columns: 1fr 1fr; }
@@ -735,5 +900,19 @@ tr.row-enter td {
   .studio-navbar, .studio-statusbar, .sheet-toolbar-actions, .grid-actions, .evolv-landing-page, .load-overlay, .evolv-modal-overlay { display: none !important; }
   .sap-table-container { max-height: none; overflow: visible; }
   .grid-block, .cost-form { break-inside: avoid; }
+}
+/* SAP Field Validation Error Styles */
+input.is-invalid, select.is-invalid, .sap-table-cell-input.is-invalid {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2 !important;
+  color: #b91c1c !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25) !important;
+  animation: shakeError 0.25s ease-in-out;
+}
+
+@keyframes shakeError {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
 }
 

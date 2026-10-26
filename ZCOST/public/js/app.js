@@ -15,6 +15,7 @@ function fmtNum(val, dec = 2) {
 
 function fmtDate(sapDate) {
   if (!sapDate) return '-';
+  // Remove the leading /Date( and the trailing )/
   // SAP format /Date(1684281600000)/
   const match = /\/Date\((\d+)\)\//.exec(sapDate);
   if (match) {
@@ -82,7 +83,7 @@ function filterCurrentTable(query) {
     row.style.display = match ? '' : 'none';
     if (match) visibleCount++;
   });
-}
+} 
 
 // Export Table to CSV
 function exportTableToCSV(filename = 'sap_cost_sheet.csv') {
