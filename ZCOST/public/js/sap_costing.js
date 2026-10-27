@@ -8,7 +8,106 @@ let isEditMode = false;
 let currentVbeln = '3000008';
 let currentPosnr = '000010';
 
-// Format Helpers
+/**
+ * The IDs of the header editable fields.
+ * @type {string[]}
+ */
+const HEADER_EDITABLE_IDS = [
+  'hdr-vbeln', 'hdr-posnr', 'hdr-kwmeng',
+  'hdr-cnv', 'hdr-cnvf'
+];
+
+/**
+ * The IDs of the form editable fields.
+ * @type {string[]}
+ */
+const FORM_EDITABLE_IDS = [
+  'form-nmachreq', 'form-npeicbnd', 'form-sam', 'form-making', 'form-overhead',
+  'form-zwast', 'form-markupp', 'form-commision', 'form-addcost', 'form-discount', 'form-quota'
+];
+
+/**
+ * Checks if the sheet is approved.
+ * @returns {boolean} True if the sheet is approved, false otherwise.
+ */
+function isSheetApproved() {
+  return !!(costData && (costData.Approve === 'X' || costData.Approve === 'x'));
+}
+
+/**
+ * Checks if the sheet can be edited.
+ * @returns {boolean} True if the sheet can be edited, false otherwise.
+ */
+function canEditSheet() {
+  return !!costData && !isSheetApproved() && isEditMode;
+}
+
+/**
+ * Applies the UI lock state to the document body.
+ * @returns {void}
+ */
+function applyUiLockState() {
+  const approved = isSheetApproved();
+  const editable = canEditSheet();
+
+  document.body.classList.toggle('is-approved', approved);
+  document.body.classList.toggle('is-editing', editable);
+
+  const btnChange = document.getElementById('btn-change');
+  const btnSave = document.getElementById('btn-save-primary');
+  const btnApprove = document.getElementById('btn-approve');
+
+  if (btnChange) {
+    btnChange.disabled = approved || !costData;
+    const changeIcon = editable
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>'
+      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
+    btnChange.innerHTML = changeIcon + (editable ? '<span>Display</span>' : '<span>Change</span>');
+    btnChange.className = 'studio-btn studio-btn-edit' + (editable ? ' active' : '');
+    btnChange.title = approved ? 'Approved sheet is view only.' : '';
+  }
+
+  if (btnSave) {
+    btnSave.disabled = approved || !costData;
+    btnSave.title = approved ? 'Approved sheet is view only.' : '';
+  }
+
+  if (btnApprove) {
+    // Approved = view only — hide Un-Approve; show Approve only when not approved
+    btnApprove.hidden = approved || !costData;
+    btnApprove.disabled = approved || !costData;
+  }
+
+  HEADER_EDITABLE_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.type === 'checkbox') el.disabled = !editable;
+    else el.readOnly = !editable;
+  });
+
+  FORM_EDITABLE_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.readOnly = !editable;
+  });
+
+  document.querySelectorAll('.sap-table-cell-input').forEach((inp) => {
+    inp.readOnly = !editable;
+  });
+  document.querySelectorAll('.sap-table-cell-select').forEach((sel) => {
+    sel.disabled = !editable;
+  });
+  document.querySelectorAll('.btn-add, .btn-delete').forEach((btn) => {
+    btn.disabled = !editable;
+    btn.title = approved ? 'Approved sheet is view only.' : '';
+  });
+}
+
+/**
+ * Formats a number to a string with the specified number of decimal places.
+ * @param {number} val - The number to format.
+ * @param {number} [dec=2] - The number of decimal places.
+ * @returns {string} The formatted number.
+ */
 function num(val, dec = 2) {
   if (val === null || val === undefined || val === '') return '-';
   const n = parseFloat(val);
@@ -16,7 +115,11 @@ function num(val, dec = 2) {
   return n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
-// Parse Number Helper
+/**
+ * Parses a number from a string.
+ * @param {string} val - The string to parse.
+ * @returns {number} The parsed number.
+ */
 function parseNum(val) {
   if (typeof val === 'number') return val;
   if (!val) return 0;
@@ -25,7 +128,10 @@ function parseNum(val) {
   return isNaN(n) ? 0 : n;
 }
 
-// Section Dropdown Options (aligned with SAP standard domain)
+/**
+ * The options for the section dropdown.
+ * @type {string[]}
+ */
 const SECTION_OPTIONS = [
   'Washing',
   'Embroidery',
@@ -41,7 +147,11 @@ const SECTION_OPTIONS = [
   'Interlining'
 ];
 
-// Get Defalut Section Type Function
+/**
+ * Gets the default section type for a given type.
+ * @param {string} type - The type to get the default section for.
+ * @returns {string} The default section type.
+ */
 function getDefaultSection(type) {
   if (type === 'fabric') return 'Fabric';
   if (type === 'trim') return 'Trim Fabric';
@@ -50,6 +160,12 @@ function getDefaultSection(type) {
   return 'Fabric';
 }
 
+/**
+ * Normalizes a section value to a standard format.
+ * @param {string} val - The section value to normalize.
+ * @param {string} type - The type of section to normalize.
+ * @returns {string} The normalized section value.
+ */
 function normalizeSection(val, type) {
   if (!val || String(val).trim() === '') {
     return getDefaultSection(type);
@@ -63,8 +179,16 @@ function normalizeSection(val, type) {
   return str;
 }
 
+/**
+ * The timestamp of the loader start time.
+ * @type {number}
+ */
 let loaderStarted = 0;
 
+/**
+ * Shows the loader.
+ * @param {string} msg - The message to display.
+ */
 function showLoader(msg) {
   loaderStarted = Date.now();
   const el = document.getElementById('load-overlay');
@@ -73,6 +197,9 @@ function showLoader(msg) {
   if (el) el.hidden = false;
 }
 
+/**
+ * Hides the loader.
+ */
 async function hideLoader() {
   const wait = 500 - (Date.now() - loaderStarted);
   if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
@@ -80,6 +207,11 @@ async function hideLoader() {
   if (el) el.hidden = true;
 }
 
+/**
+ * Updates the status of the application.
+ * @param {string} msg - The message to display.
+ * @param {string} type - The type of status.
+ */
 function updateStatus(msg, type = 'info') {
   const msgEl = document.getElementById('sap-status-text');
   const iconEl = document.getElementById('sap-status-icon');
@@ -90,7 +222,11 @@ function updateStatus(msg, type = 'info') {
   }
 }
 
-// Header-Side Colorful Notification Modal / Toast System
+/**
+ * Shows a toast notification.
+ * @param {string} msg - The message to display.
+ * @param {string} type - The type of toast.
+ */
 function showToast(msg, type = null) {
   let toastType = 'info';
   let title = 'Information';
@@ -181,9 +317,18 @@ function showToast(msg, type = null) {
   setTimeout(dismiss, 4200);
 }
 
+/**
+ * The pending quotation that was not found.
+ * @type {object}
+ */
 let pendingNotFoundQuotation = null;
 
-// Fetch Cost Sheet from Backend (SAP Live / Database / Auto-Generated Master)
+/**
+ * Fetches the cost sheet from the backend.
+ * @param {string} vbeln - The sales order number.
+ * @param {string} posnr - The item number.
+ * @returns {Promise<boolean>} True if the cost sheet was fetched successfully, false otherwise.
+ */
 async function fetchCostSheet(vbeln, posnr) {
   currentVbeln = vbeln || currentVbeln;
   currentPosnr = posnr || currentPosnr;
@@ -228,7 +373,13 @@ async function fetchCostSheet(vbeln, posnr) {
   }
 }
 
-// Validation Engine for SAP Fields (DDIC ZCOSTH, zcosti, ZCOSTIP from ZCost.xlsx)
+/**
+ * Validates a field.
+ * @param {HTMLInputElement} inputEl - The input element to validate.
+ * @param {string} type - The type of field to validate.
+ * @param {number} extra - The extra value to validate.
+ * @returns {boolean} True if the field is valid, false otherwise.
+ */
 function validateField(inputEl, type, extra) {
   if (!inputEl) return true;
   let val = inputEl.value;
@@ -336,7 +487,10 @@ function validateField(inputEl, type, extra) {
   return isValid;
 }
 
-// Validate entire costing sheet before sending to SAP
+/**
+ * Validates the entire costing sheet before sending to SAP.
+ * @returns {boolean} True if the costing sheet is valid, false otherwise.
+ */
 function validateCostSheet() {
   // 1. Check all current DOM inputs with is-invalid
   const invalidEls = document.querySelectorAll('.is-invalid');
@@ -435,8 +589,15 @@ function validateCostSheet() {
 }
 
 // POST / Save Cost Sheet to SAP
-async function saveCostSheet() {
+async function saveCostSheet(options = {}) {
   if (!costData) return;
+
+  // Approved = view only (Approve/Un-Approve still posts via { force: true })
+  if (isSheetApproved() && !options.force) {
+    updateStatus('Sheet is APPROVED — view only.', 'warn');
+    showToast('Approved sheet is view only.', true);
+    return;
+  }
 
   // Gather current inputs from UI
   collectHeaderInputs();
@@ -500,6 +661,7 @@ function renderAll() {
   renderTable('special', costData.to_Special.results);
   renderBottomForm();
   recalculateAll();
+  applyUiLockState();
 
   // Sync Stage Tab Badge Counts
   const fabCount = costData.to_Fabric?.results?.length || 0;
@@ -536,14 +698,15 @@ function renderHeader() {
     screenTitle.className = 'sap-screen-title ' + (isApproved ? 'approved' : 'not-approved');
   }
 
-  // Approve button text
+  // Approve button: visible only when NOT approved (no Un-Approve)
   const btnApprove = document.getElementById('btn-approve');
   if (btnApprove) {
     const approveIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>';
-    btnApprove.innerHTML = isApproved 
-      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg><span>Un-Approve</span>' 
-      : approveIcon + '<span>Approve</span>';
-    btnApprove.className = 'studio-btn ' + (isApproved ? 'studio-btn-outline' : 'studio-btn-approve');
+    btnApprove.innerHTML = approveIcon + '<span>Approve</span>';
+    btnApprove.className = 'studio-btn studio-btn-approve';
+    btnApprove.hidden = isApproved;
+    btnApprove.disabled = isApproved || !costData;
+    btnApprove.title = isApproved ? '' : 'Approve sheet (locks to view only)';
   }
 
   // Studio header SO badge sync
@@ -583,6 +746,10 @@ function renderHeader() {
 
   const cmdInput = document.getElementById('sap-cmd-input');
   if (cmdInput && !cmdInput.value) cmdInput.value = costData.Vbeln || '';
+
+  // Approved sheets are always view-only (after values are painted)
+  if (isApproved && isEditMode) isEditMode = false;
+  applyUiLockState();
 }
 
 // Render ALV Table
@@ -719,6 +886,7 @@ function renderTable(type, rows) {
 
 // Update Single Row Field and Recalculate
 function updateRowField(type, idx, field, rawValue) {
+  if (!canEditSheet()) return;
   const list = getRowList(type);
   if (!list || !list[idx]) return;
 
@@ -847,21 +1015,22 @@ function collectHeaderInputs() {
   if (!costData) return;
   const vbeln = document.getElementById('hdr-vbeln')?.value.trim();
   const posnr = document.getElementById('hdr-posnr')?.value.trim();
-  const matnr = document.getElementById('hdr-matnr')?.value.trim() || '';
-  const maktxh = document.getElementById('hdr-maktx')?.value.trim() || '';
+  const matnrEl = document.getElementById('hdr-matnr');
+  const maktxEl = document.getElementById('hdr-maktx');
+  const zzallEl = document.getElementById('hdr-zzall');
   const kwmeng = parseNum(document.getElementById('hdr-kwmeng')?.value);
   const cnv = document.getElementById('hdr-cnv')?.value.trim() || 'EUR';
   const cnvf = parseNum(document.getElementById('hdr-cnvf')?.value) || 1.0;
-  const zzall = document.getElementById('hdr-zzall')?.checked ? 'X' : '';
 
   if (vbeln) costData.Vbeln = vbeln;
   if (posnr) costData.Posnr = posnr;
-  costData.Matnr = matnr;
-  costData.Maktxh = maktxh;
+  // Style / Style desc / same-price UI removed — keep SAP values unless fields exist
+  if (matnrEl) costData.Matnr = matnrEl.value.trim();
+  if (maktxEl) costData.Maktxh = maktxEl.value.trim();
+  if (zzallEl) costData.Zzall = zzallEl.checked ? 'X' : '';
   costData.Kwmeng = kwmeng.toFixed(3);
   costData.Cnv = cnv;
   costData.Cnvf = cnvf.toFixed(3);
-  costData.Zzall = zzall;
 
   // Bottom form fields
   costData.Nmachreq = parseInt(document.getElementById('form-nmachreq')?.value || 0, 10);
@@ -990,7 +1159,7 @@ function recalculateAll() {
   }
 
   paintKpi('kpi-sellprice', '₹ ' + num(sellingPrice, 2));
-  paintKpi('kpi-sellprice-fr', (costData.Cnv || 'EUR') + ' ' + num(sellPriceFr, 2));
+  paintKpi('kpi-sellprice-fr', (costData.Cnv || 'EUR') + ' ' + num(qouc, 2));
   paintKpi('kpi-quota-val', 'Quote: ' + num(costData.Quota || 0, 3));
   paintKpi('kpi-subtot', '₹ ' + num(calculatedSubtot, 2));
   paintKpi('kpi-fabric-tot', '₹ ' + num(fabricInr, 2));
@@ -1030,7 +1199,10 @@ function setTableTotals(type, costSum, inrSum, frSum, finSum) {
   if (elFin) elFin.textContent = num(finSum, 2);
 }
 
-// Toggle Approval Status
+/**
+ * Toggles the approval status of the sheet.
+ * @returns {void}
+ */
 function toggleApprove() {
   if (!costData) return;
   const currentApprove = costData.Approve;
@@ -1041,44 +1213,37 @@ function toggleApprove() {
   } else {
     costData.Approve = 'X';
     costData.Approvedby = 'URAMPUR';
+    isEditMode = false; // force view-only on approve
     showToast('Status changed to APPROVED by URAMPUR');
   }
   renderHeader();
-  saveCostSheet();
+  saveCostSheet({ force: true });
 }
 
-// Toggle Edit / Change Mode
+/**
+ * Toggles the edit/change mode of the sheet.
+ * @returns {void}
+ */
 function toggleChangeMode() {
-  isEditMode = !isEditMode;
-  const btnChange = document.getElementById('btn-change');
-  if (btnChange) {
-    const changeIcon = isEditMode
-      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>'
-      : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>';
-    btnChange.innerHTML = changeIcon + (isEditMode ? '<span>Display</span>' : '<span>Change</span>');
-    btnChange.className = 'studio-btn studio-btn-edit' + (isEditMode ? ' active' : '');
+  if (!costData) return;
+  if (isSheetApproved()) {
+    updateStatus('Cannot edit: sheet is APPROVED (view only).', 'warn');
+    showToast('Approved sheet is view only.', true);
+    applyUiLockState();
+    return;
   }
-  document.body.classList.toggle('is-editing', isEditMode);
 
-  // Update input states
-  document.querySelectorAll('.sap-table-cell-input').forEach(inp => {
-    inp.readOnly = !isEditMode;
-  });
-  document.querySelectorAll('.sap-table-cell-select').forEach(sel => {
-    sel.disabled = !isEditMode;
-  });
-
-  const inputsToToggle = ['form-nmachreq', 'form-npeicbnd', 'form-sam', 'form-making', 'form-overhead', 
-                          'form-zwast', 'form-markupp', 'form-commision', 'form-addcost', 'form-discount', 'form-quota'];
-  inputsToToggle.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.readOnly = !isEditMode;
-  });
+  isEditMode = !isEditMode;
+  applyUiLockState();
 
   updateStatus(isEditMode ? 'Changed to EDIT mode. Inputs are now editable.' : 'Changed to DISPLAY mode.', 'info');
   showToast(isEditMode ? 'Edit Mode Activated' : 'Display Mode Active');
 }
 
+/**
+ * Ensures a blank sheet is loaded.
+ * @returns {void}
+ */
 function ensureBlankSheet() {
   if (costData) {
     ['to_Fabric', 'to_Trim', 'to_Packing', 'to_Special'].forEach(key => {
@@ -1117,6 +1282,10 @@ function paintKpi(id, text) {
 // Add an empty line the user can fill in
 function addRow(type) {
   ensureBlankSheet();
+  if (isSheetApproved()) {
+    showToast('Approved sheet is view only.', true);
+    return;
+  }
   if (!isEditMode) toggleChangeMode();
   const list = getRowList(type);
   if (!list) return;
@@ -1178,6 +1347,12 @@ function addRow(type) {
 // Delete Row from Table
 function deleteRow(type) {
   if (!costData) return;
+  if (isSheetApproved() || !isEditMode) {
+    showToast(isSheetApproved()
+      ? 'Approved sheet is view only.'
+      : 'Switch to Change mode to delete rows.', true);
+    return;
+  }
   const list = getRowList(type);
   if (!list || list.length === 0) return;
 
@@ -1361,11 +1536,6 @@ async function handleConfirmCreateMaster() {
 
   // Auto enable edit mode so user can immediately add rows
   isEditMode = true;
-  const btnEdit = document.getElementById('btn-change');
-  if (btnEdit) {
-    btnEdit.classList.add('studio-btn-active');
-    btnEdit.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg><span>Lock Mode</span>';
-  }
 
   const landing = document.getElementById('evolv-landing-page');
   const mainWin = document.getElementById('sap-window');
@@ -1377,7 +1547,8 @@ async function handleConfirmCreateMaster() {
   if (navSearch) navSearch.value = vbeln;
 
   renderAll();
-  updateStatus(`New Quotation Master created for ${vbeln} [Item ${posnr}]`, 'info');
+  applyUiLockState();
+    updateStatus(`New Quotation Master created for ${vbeln} [Item ${posnr}]`, 'info');
   showToast(`Created new quotation master for ${vbeln}`);
 
   // Update browser URL
@@ -1389,7 +1560,10 @@ async function handleConfirmCreateMaster() {
   pendingNotFoundQuotation = null;
 }
 
-// User clicked "No, Search Again"
+/**
+ * Handles the cancellation of the search again.
+ * @returns {void}
+ */
 function handleCancelSearchAgain() {
   hideNotFoundModal();
   pendingNotFoundQuotation = null;
@@ -1415,7 +1589,12 @@ function handleCancelSearchAgain() {
   showToast('Search again. Please enter a quotation number.');
 }
 
-// Client-side fallback to create a fresh quotation master template
+/**
+ * Creates a blank quotation master template.
+ * @param {string} vbeln - The sales order number.
+ * @param {string} posnr - The item number.
+ * @returns {void}
+ */
 function createBlankQuotationMaster(vbeln, posnr = '000010') {
   costData = {
     _is_user_created: true,
@@ -1452,6 +1631,10 @@ function createBlankQuotationMaster(vbeln, posnr = '000010') {
   currentPosnr = posnr;
 }
 
+/**
+ * Handles the submission of the landing search.
+ * @returns {void}
+ */
 async function handleLandingSearchSubmit() {
   const searchInput = document.getElementById('landing-search-input');
   const submitBtn = document.getElementById('landing-submit-btn');
@@ -1506,7 +1689,11 @@ async function handleLandingSearchSubmit() {
 
 
 
-// Studio Section / Stage Tab Navigator
+/**
+ * Switches the studio tab.
+ * @param {string} tabId - The ID of the tab to switch to.
+ * @returns {void}
+ */
 function switchStudioTab(tabId) {
   // Update active tab buttons
   document.querySelectorAll('.stage-nav-tab').forEach(btn => {
@@ -1530,7 +1717,11 @@ function switchStudioTab(tabId) {
   }
 }
 
-// User Profile Dropdown Toggle
+/**
+ * Toggles the user dropdown.
+ * @param {Event} e - The event object.
+ * @returns {void}
+ */
 function toggleUserDropdown(e) {
   if (e) {
     e.preventDefault();
@@ -1555,21 +1746,10 @@ document.addEventListener('click', (e) => {
   });
 });
 
-// Switch view to Landing Search Page
-function showLandingSearch() {
-  const landing = document.getElementById('evolv-landing-page');
-  const mainWin = document.getElementById('sap-window');
-  if (landing) landing.classList.remove('hidden');
-  if (mainWin) mainWin.style.display = 'none';
-  const searchInput = document.getElementById('landing-search-input');
-  if (searchInput) setTimeout(() => searchInput.focus(), 150);
-}
-
-function openSearchModal() {
-  showLandingSearch();
-}
-
-// Initialize on page load
+/**
+ * Initializes the page on load.
+ * @returns {void}
+ */
 window.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
   const vbeln = urlParams.get('vbeln');

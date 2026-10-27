@@ -116,14 +116,6 @@
             <span>Item</span>
             <input type="text" id="hdr-posnr" value="000010" placeholder="000010" maxlength="6" oninput="validateField(this, 'numc6')" onblur="if(this.value && /^\d+$/.test(this.value)) this.value = this.value.padStart(6, '0'); collectHeaderInputs();" onchange="collectHeaderInputs()">
           </label>
-          <label class="sheet-field" title="HD_ZCOST-MATNR">
-            <span>Style</span>
-            <input type="text" id="hdr-matnr" value="" placeholder="Style" maxlength="40" oninput="validateField(this, 'matnr')" onchange="collectHeaderInputs()">
-          </label>
-          <label class="sheet-field sheet-field-wide" title="HD_ZCOST-MAKTX">
-            <span>Style desc.</span>
-            <input type="text" id="hdr-maktx" value="" placeholder="Style description" maxlength="80" oninput="validateField(this, 'maktx')" onchange="collectHeaderInputs()">
-          </label>
           <label class="sheet-field" title="HD_ZCOST-KWMENG">
             <span>Qty</span>
             <input type="text" id="hdr-kwmeng" value="0.000" placeholder="0.000" oninput="validateField(this, 'decimal', 3)" onchange="collectHeaderInputs()">
@@ -131,15 +123,11 @@
         </div>
 
         <div class="sheet-toolbar-meta">
-          <label class="sheet-check" title="Click if all the variant have same price">
-            <input type="checkbox" id="hdr-zzall" onchange="collectHeaderInputs()">
-            <span>Click if all the variant have same price</span>
-          </label>
-          <label class="sheet-field" title="Currency Code/Conv">
-            <span>Currency Code/Conv</span>
+          <label class="sheet-field sheet-field-curr" title="Currency Code / Conversion">
+            <span>Curr</span>
             <input type="text" id="hdr-cnv" value="USD" maxlength="5" style="text-transform:uppercase;" oninput="this.value = this.value.toUpperCase(); validateField(this, 'waers');" onchange="collectHeaderInputs(); renderAll();">
           </label>
-          <label class="sheet-field">
+          <label class="sheet-field sheet-field-rate" title="Conversion Rate">
             <span>Rate</span>
             <input type="text" id="hdr-cnvf" value="87.00" oninput="validateField(this, 'decimal', 3)" onchange="collectHeaderInputs(); recalculateAll();">
           </label>
@@ -147,7 +135,7 @@
 
       </div>
 
-      <div class="sheet-toolbar-actions">
+      <div class="sheet-toolbar-actions" role="group" aria-label="Sheet actions">
         <button type="button" class="studio-btn studio-btn-approve" id="btn-approve" onclick="toggleApprove()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
           <span>Approve</span>
@@ -280,7 +268,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
             Add row
           </button>
-          <button type="button" onclick="deleteRow('fabric')">
+          <button type="button" class="btn-delete" onclick="deleteRow('fabric')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
             Delete
           </button>
@@ -339,7 +327,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
             Add row
           </button>
-          <button type="button" onclick="deleteRow('trim')">
+          <button type="button" class="btn-delete" onclick="deleteRow('trim')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
             Delete
           </button>
@@ -399,7 +387,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
             Add row
           </button>
-          <button type="button" onclick="deleteRow('packing')">
+          <button type="button" class="btn-delete" onclick="deleteRow('packing')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
             Delete
           </button>
@@ -458,7 +446,7 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
             Add row
           </button>
-          <button type="button" onclick="deleteRow('special')">
+          <button type="button" class="btn-delete" onclick="deleteRow('special')">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M9 7V5h6v2M7 7l1 13h8l1-13"/></svg>
             Delete
           </button>
