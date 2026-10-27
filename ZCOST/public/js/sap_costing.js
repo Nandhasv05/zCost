@@ -941,16 +941,10 @@ function recalculateAll() {
   setInputValue('form-subtot', num(calculatedSubtot, 4));
 
   // HD_ZCOST-MARKUP = ( SUBTOT / ( 100 - HD_ZCOST-MARKUP_P ) ) * HD_ZCOST-MARKUP_P.
-  let markupP = parseNum(costData.MarkupP);
-  let markupVal = 0;
-  if (markupP > 0 && markupP < 100) {
-    markupVal = (calculatedSubtot / (100 - markupP)) * markupP;
-  } else if (markupP === 0 && parseNum(costData.Markup) > 0 && calculatedSubtot > 0) {
-    markupVal = parseNum(costData.Markup);
-    markupP = (markupVal / (calculatedSubtot + markupVal)) * 100;
-    costData.MarkupP = markupP.toFixed(3);
-    setInputValue('form-markupp', num(markupP, 3));
-  }
+  const markupP = parseNum(costData.MarkupP);
+  const markupVal = (markupP > 0 && markupP < 100) 
+    ? (calculatedSubtot / (100 - markupP)) * markupP 
+    : 0;
   costData.Markup = markupVal.toFixed(2);
   setInputValue('form-markup', num(markupVal, 2));
 
@@ -959,10 +953,9 @@ function recalculateAll() {
 
   // HD_ZCOST-COMM_VAL = ( HD_ZCOST-SELLPRICE / ( 100 - HD_ZCOST-COMMISION ) ) * HD_ZCOST-COMMISION.
   const commP = parseNum(costData.Commision);
-  let commVal = 0;
-  if (commP > 0 && commP < 100) {
-    commVal = (intermediateSellPrice / (100 - commP)) * commP;
-  }
+  const commVal = (commP > 0 && commP < 100) 
+    ? (intermediateSellPrice / (100 - commP)) * commP 
+    : 0;
   costData.CommVal = commVal.toFixed(2);
   setInputValue('form-commval', num(commVal, 2));
 
