@@ -16,6 +16,7 @@ function num(val, dec = 2) {
   return n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
+// Parse Number Helper
 function parseNum(val) {
   if (typeof val === 'number') return val;
   if (!val) return 0;
@@ -40,10 +41,12 @@ const SECTION_OPTIONS = [
   'Interlining'
 ];
 
+// Get Defalut Section Type Function
 function getDefaultSection(type) {
   if (type === 'fabric') return 'Fabric';
   if (type === 'trim') return 'Trim Fabric';
   if (type === 'packing') return 'Packing';
+  if (type === 'special') return 'Others';
   return 'Fabric';
 }
 
@@ -494,6 +497,7 @@ function renderAll() {
   renderTable('fabric', costData.to_Fabric.results);
   renderTable('trim', costData.to_Trim.results);
   renderTable('packing', costData.to_Packing.results);
+  renderTable('special', costData.to_Special.results);
   renderBottomForm();
   recalculateAll();
 
@@ -501,7 +505,8 @@ function renderAll() {
   const fabCount = costData.to_Fabric?.results?.length || 0;
   const trimCount = costData.to_Trim?.results?.length || 0;
   const packCount = costData.to_Packing?.results?.length || 0;
-  const allCount = fabCount + trimCount + packCount;
+  const specialCount = costData.to_Special?.results?.length || 0;
+  const allCount = fabCount + trimCount + packCount + specialCount;
 
   const elAll = document.getElementById('badge-all-count');
   if (elAll) elAll.textContent = allCount;
@@ -511,6 +516,8 @@ function renderAll() {
   if (elTrim) elTrim.textContent = trimCount;
   const elPack = document.getElementById('badge-packing-count');
   if (elPack) elPack.textContent = packCount;
+  const elSpecial = document.getElementById('badge-special-count');
+  if (elSpecial) elSpecial.textContent = specialCount;
 }
 
 // Render Window Header & Controls
@@ -559,6 +566,15 @@ function renderHeader() {
   const zzallCheckbox = document.getElementById('hdr-zzall');
   if (zzallCheckbox) zzallCheckbox.checked = (costData.Zzall === 'X' || costData.Zzall === 'x');
 
+  const matnrInput = document.getElementById('hdr-matnr');
+  if (matnrInput) matnrInput.value = costData.Matnr || costData.Style || '';
+
+  const maktxInput = document.getElementById('hdr-maktx');
+  if (maktxInput) maktxInput.value = costData.Maktxh || costData.StyleName || costData.MaktxHdr || '';
+
+  const kwmengInput = document.getElementById('hdr-kwmeng');
+  if (kwmengInput) kwmengInput.value = num(costData.Kwmeng ?? costData.Menge ?? costData.Qty ?? 0, 3);
+
   const cnvInput = document.getElementById('hdr-cnv');
   if (cnvInput) cnvInput.value = costData.Cnv || 'EUR';
 
@@ -591,7 +607,7 @@ function renderTable(type, rows) {
     if (!r.Zsection) {
       r.Zsection = section;
     }
-    const item = r.Item || (r.Maktx ? r.Maktx.split(' ')[0] : '');
+    const item = r.Item || '';
     const maktx = r.Maktx || '';
     const width = r.WidSiz || '';
     const net = parseNum(r.Net);
@@ -633,10 +649,10 @@ function renderTable(type, rows) {
         </td>
         <td class="col-desc">
           <input type="text" class="sap-table-cell-input cell-coral cell-text" title="${escapeHtml(maktx)}" value="${escapeHtml(maktx)}"
-                 maxlength="40"
-                 style="min-width:${Math.max(String(maktx).length, 12)}ch"
-                 oninput="validateField(this, 'maktx')"
-                 onchange="updateRowField('${type}', ${idx}, 'Maktx', this.value)" ${!isEditMode ? 'readonly' : ''}>
+                   maxlength="40"
+                   style="min-width:${Math.max(String(maktx).length, 12)}ch"
+                   oninput="validateField(this, 'maktx')"
+                   onchange="updateRowField('${type}', ${idx}, 'Maktx', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-text">
           <input type="text" class="sap-table-cell-input col-center cell-amber cell-text" title="WA_ZCOST_S-WID_SIZ" value="${escapeHtml(width)}"
@@ -646,14 +662,14 @@ function renderTable(type, rows) {
                  onchange="updateRowField('${type}', ${idx}, 'WidSiz', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num">
-          <input type="text" class="sap-table-cell-input col-num cell-coral" title="WA_ZCOST_S-WSTE" value="${num(waste, 2)}" 
-                 oninput="validateField(this, 'percent')"
-                 onchange="updateRowField('${type}', ${idx}, 'Wste', this.value)" ${!isEditMode ? 'readonly' : ''}>
-        </td>
-        <td class="col-num">
           <input type="text" class="sap-table-cell-input col-num cell-coral" title="WA_ZCOST_S-NET" value="${num(net, 4)}" 
                  oninput="validateField(this, 'decimal', 4)"
                  onchange="updateRowField('${type}', ${idx}, 'Net', this.value)" ${!isEditMode ? 'readonly' : ''}>
+        </td>
+        <td class="col-num">
+          <input type="text" class="sap-table-cell-input col-num cell-coral" title="WA_ZCOST_S-WSTE" value="${num(waste, 2)}" 
+                 oninput="validateField(this, 'percent')"
+                 onchange="updateRowField('${type}', ${idx}, 'Wste', this.value)" ${!isEditMode ? 'readonly' : ''}>
         </td>
         <td class="col-num cell-cyan" id="cell-gross-${type}-${idx}">${num(gross, 4)}</td>
         <td class="col-center">
@@ -831,12 +847,18 @@ function collectHeaderInputs() {
   if (!costData) return;
   const vbeln = document.getElementById('hdr-vbeln')?.value.trim();
   const posnr = document.getElementById('hdr-posnr')?.value.trim();
+  const matnr = document.getElementById('hdr-matnr')?.value.trim() || '';
+  const maktxh = document.getElementById('hdr-maktx')?.value.trim() || '';
+  const kwmeng = parseNum(document.getElementById('hdr-kwmeng')?.value);
   const cnv = document.getElementById('hdr-cnv')?.value.trim() || 'EUR';
   const cnvf = parseNum(document.getElementById('hdr-cnvf')?.value) || 1.0;
   const zzall = document.getElementById('hdr-zzall')?.checked ? 'X' : '';
 
   if (vbeln) costData.Vbeln = vbeln;
   if (posnr) costData.Posnr = posnr;
+  costData.Matnr = matnr;
+  costData.Maktxh = maktxh;
+  costData.Kwmeng = kwmeng.toFixed(3);
   costData.Cnv = cnv;
   costData.Cnvf = cnvf.toFixed(3);
   costData.Zzall = zzall;
@@ -892,11 +914,15 @@ function recalculateAll() {
   });
   setTableTotals('packing', packingCostSum, packingInr, packingFr, packingFinSum);
 
-  // Special Category Sums
-  let specialInr = 0;
+  // Special / Others Category Sums
+  let specialInr = 0, specialFr = 0, specialCostSum = 0, specialFinSum = 0;
   (costData.to_Special.results || []).forEach(r => {
     specialInr += parseNum(r.Totalinr);
+    specialFr += parseNum(r.Totalfr);
+    specialCostSum += parseNum(r.Rate);
+    specialFinSum += parseNum(r.Fincost);
   });
+  setTableTotals('special', specialCostSum, specialInr, specialFr, specialFinSum);
 
   // Intermediate sub-total
   const calculatedSubtot = fabricInr + trimInr + packingInr + specialInr;
@@ -960,6 +986,9 @@ function recalculateAll() {
 
   const countPacking = document.getElementById('count-packing');
   if (countPacking) countPacking.textContent = (costData.to_Packing.results || []).length;
+
+  const countSpecial = document.getElementById('count-special');
+  if (countSpecial) countSpecial.textContent = (costData.to_Special.results || []).length;
 }
 
 function setTableTotals(type, costSum, inrSum, frSum, finSum) {
@@ -1036,6 +1065,9 @@ function ensureBlankSheet() {
   costData = {
     Vbeln: document.getElementById('hdr-vbeln')?.value.trim() || '',
     Posnr: document.getElementById('hdr-posnr')?.value.trim() || '000010',
+    Matnr: document.getElementById('hdr-matnr')?.value.trim() || '',
+    Maktxh: document.getElementById('hdr-maktx')?.value.trim() || '',
+    Kwmeng: document.getElementById('hdr-kwmeng')?.value || '0.000',
     Cnv: document.getElementById('hdr-cnv')?.value.trim() || 'EUR',
     Cnvf: document.getElementById('hdr-cnvf')?.value || '90.00',
     Approve: '',
@@ -1102,7 +1134,10 @@ function addRow(type) {
   if (badge) badge.textContent = String(list.length);
   const allBadge = document.getElementById('badge-all-count');
   if (allBadge && costData) {
-    const n = (costData.to_Fabric?.results?.length || 0) + (costData.to_Trim?.results?.length || 0) + (costData.to_Packing?.results?.length || 0);
+    const n = (costData.to_Fabric?.results?.length || 0)
+      + (costData.to_Trim?.results?.length || 0)
+      + (costData.to_Packing?.results?.length || 0)
+      + (costData.to_Special?.results?.length || 0);
     allBadge.textContent = String(n);
   }
 
@@ -1138,15 +1173,15 @@ function exportTableToCSV(type) {
     return;
   }
 
-  const headers = ['SL', 'Section', 'ITEM', 'MAKTX', 'WID_SIZ', 'WSTE', 'NET', 'GROSS', 'CURUNIT', 'CONVR', 'PURP', 'FRIGHT', 'DUTY', 'RATE', 'TOTALINR', 'TOTALFR', 'FINCOST'];
+  const headers = ['SL', 'Section', 'ITEM', 'MAKTX', 'WID_SIZ', 'NET', 'WSTE', 'GROSS', 'CURUNIT', 'CONVR', 'PURP', 'FRIGHT', 'DUTY', 'RATE', 'TOTALINR', 'TOTALFR', 'FINCOST'];
   const rows = list.map((r, i) => [
     r.Slno || (i + 1),
     `"${(r.Zsection || '').replace(/"/g, '""')}"`,
     `"${(r.Item || '').replace(/"/g, '""')}"`,
     `"${(r.Maktx || '').replace(/"/g, '""')}"`,
     r.WidSiz || '',
-    r.Wste || 0,
     r.Net || 0,
+    r.Wste || 0,
     r.Gross || 0,
     r.Curunit || '',
     r.Convr || 1,
@@ -1361,6 +1396,9 @@ function createBlankQuotationMaster(vbeln, posnr = '000010') {
     _is_user_created: true,
     Vbeln: vbeln,
     Posnr: posnr,
+    Matnr: '',
+    Maktxh: '',
+    Kwmeng: '0.000',
     Approve: '',
     Zzall: 'X',
     Cnv: 'USD',
