@@ -42,6 +42,28 @@ function canEditSheet() {
   return !!costData && !isSheetApproved() && isEditMode;
 }
 
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** Replay status badge / sheet entrance animations */
+function pulseStatusBadge() {
+  const screenTitle = document.getElementById('sap-screen-title');
+  if (!screenTitle || prefersReducedMotion()) return;
+  screenTitle.classList.remove('status-in');
+  void screenTitle.offsetWidth;
+  screenTitle.classList.add('status-in');
+  setTimeout(() => screenTitle.classList.remove('status-in'), 1600);
+}
+
+function playSheetEntrance() {
+  if (prefersReducedMotion()) return;
+  document.body.classList.remove('sheet-animating');
+  void document.body.offsetWidth;
+  document.body.classList.add('sheet-animating');
+  setTimeout(() => document.body.classList.remove('sheet-animating'), 700);
+}
+
 /**
  * Applies the UI lock state to the document body.
  * @returns {void}
@@ -73,9 +95,13 @@ function applyUiLockState() {
   }
 
   if (btnApprove) {
-    // Approved = view only — hide Un-Approve; show Approve only when not approved
-    btnApprove.hidden = approved || !costData;
-    btnApprove.disabled = approved || !costData;
+    // Approve only for admin / nandhakumar; hide when already approved
+    const allowApprove = canApproveSheet();
+    btnApprove.hidden = approved || !costData || !allowApprove;
+    btnApprove.disabled = approved || !costData || !allowApprove;
+    btnApprove.title = !allowApprove
+      ? 'Approve allowed only for admin, nandhakumar.'
+      : (approved ? '' : 'Approve sheet (locks to view only)');
   }
 
   HEADER_EDITABLE_IDS.forEach((id) => {
@@ -96,9 +122,14 @@ function applyUiLockState() {
   document.querySelectorAll('.sap-table-cell-select').forEach((sel) => {
     sel.disabled = !editable;
   });
+
+  // Approved = disable Delete (and Add) on every section
   document.querySelectorAll('.btn-add, .btn-delete').forEach((btn) => {
-    btn.disabled = !editable;
-    btn.title = approved ? 'Approved sheet is view only.' : '';
+    const lock = approved || !editable;
+    btn.disabled = lock;
+    btn.hidden = approved; // hide row actions entirely when approved
+    btn.title = approved ? 'Approved sheet is view only — delete disabled.' : '';
+    btn.setAttribute('aria-disabled', lock ? 'true' : 'false');
   });
 }
 
@@ -631,9 +662,16 @@ async function saveCostSheet(options = {}) {
         updateStatus(json.message || 'Saved in local session.', 'warn');
         showToast(json.message || 'Saved locally in active session');
       }
+      if (json.audit) {
+        prependAuditEntry(json.audit);
+        const panel = document.getElementById('audit-panel');
+        if (panel && !panel.hidden) loadAuditLog();
+      }
     } else {
-      updateStatus(`Save error: ${json.error || 'SAP rejected save request'}`, 'error');
-      showToast(`Save error: ${json.error || 'Rejected'}`, true);
+      const sapMsg = json.error || json.sap_error || json.message || 'SAP rejected save request';
+      updateStatus(`Save error: ${sapMsg}`, 'error');
+      showToast(`Save error: ${sapMsg}`, true);
+      if (json.audit) prependAuditEntry(json.audit);
     }
   } catch (err) {
     updateStatus(`Save request failed: ${err.message}`, 'error');
@@ -662,6 +700,8 @@ function renderAll() {
   renderBottomForm();
   recalculateAll();
   applyUiLockState();
+  playSheetEntrance();
+  pulseStatusBadge();
 
   // Sync Stage Tab Badge Counts
   const fabCount = costData.to_Fabric?.results?.length || 0;
@@ -698,15 +738,18 @@ function renderHeader() {
     screenTitle.className = 'sap-screen-title ' + (isApproved ? 'approved' : 'not-approved');
   }
 
-  // Approve button: visible only when NOT approved (no Un-Approve)
+  // Approve button: only admin / nandhakumar, and only when NOT approved
   const btnApprove = document.getElementById('btn-approve');
   if (btnApprove) {
     const approveIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>';
+    const allowApprove = canApproveSheet();
     btnApprove.innerHTML = approveIcon + '<span>Approve</span>';
     btnApprove.className = 'studio-btn studio-btn-approve';
-    btnApprove.hidden = isApproved;
-    btnApprove.disabled = isApproved || !costData;
-    btnApprove.title = isApproved ? '' : 'Approve sheet (locks to view only)';
+    btnApprove.hidden = isApproved || !allowApprove;
+    btnApprove.disabled = isApproved || !costData || !allowApprove;
+    btnApprove.title = !allowApprove
+      ? 'Approve allowed only for admin, nandhakumar.'
+      : (isApproved ? '' : 'Approve sheet (locks to view only)');
   }
 
   // Studio header SO badge sync
@@ -1205,18 +1248,26 @@ function setTableTotals(type, costSum, inrSum, frSum, finSum) {
  */
 function toggleApprove() {
   if (!costData) return;
+  if (!canApproveSheet()) {
+    showToast('Approve allowed only for admin, nandhakumar.', true);
+    applyUiLockState();
+    return;
+  }
   const currentApprove = costData.Approve;
   if (currentApprove === 'X' || currentApprove === 'x') {
     costData.Approve = '';
     costData.Approvedby = '';
     showToast('Status changed to NOT APPROVED');
   } else {
+    const by = String(portalUser.username || '').trim().toUpperCase() || 'ADMIN';
     costData.Approve = 'X';
-    costData.Approvedby = 'URAMPUR';
+    costData.Approvedby = by;
     isEditMode = false; // force view-only on approve
-    showToast('Status changed to APPROVED by URAMPUR');
+    showToast('Status changed to APPROVED by ' + by);
   }
   renderHeader();
+  applyUiLockState(); // immediately lock Delete / hide Print
+  pulseStatusBadge();
   saveCostSheet({ force: true });
 }
 
@@ -1356,12 +1407,23 @@ function deleteRow(type) {
   const list = getRowList(type);
   if (!list || list.length === 0) return;
 
-  list.pop();
-  renderTable(type, list);
-  recalculateAll();
-  const badge = document.getElementById(`badge-${type}-count`);
-  if (badge) badge.textContent = String(list.length);
-  showToast(`Removed last row from ${type.toUpperCase()}`);
+  const finishDelete = () => {
+    list.pop();
+    renderTable(type, list);
+    recalculateAll();
+    const badge = document.getElementById(`badge-${type}-count`);
+    if (badge) badge.textContent = String(list.length);
+    showToast(`Removed last row from ${type.toUpperCase()}`);
+  };
+
+  const tbody = document.getElementById(`tbody-${type}`);
+  const lastRow = tbody ? tbody.querySelector('tr:last-child') : null;
+  if (lastRow && !prefersReducedMotion() && !lastRow.querySelector('td[colspan]')) {
+    lastRow.classList.add('row-leave');
+    setTimeout(finishDelete, 320);
+    return;
+  }
+  finishDelete();
 }
 
 // Export Table to CSV
@@ -1746,11 +1808,193 @@ document.addEventListener('click', (e) => {
   });
 });
 
+const APPROVE_USERNAMES = ['admin', 'nandhakumar'];
+let portalUser = { logged_in: false, is_admin: false, can_approve: false };
+
+function canApproveSheet() {
+  if (portalUser && typeof portalUser.can_approve === 'boolean') {
+    return !!portalUser.can_approve;
+  }
+  const u = String(portalUser?.username || '').trim().toLowerCase();
+  return APPROVE_USERNAMES.includes(u);
+}
+
+function applyPortalSession(user) {
+  portalUser = user || { logged_in: false, is_admin: false, can_approve: false };
+  if (typeof portalUser.can_approve !== 'boolean') {
+    portalUser.can_approve = canApproveSheet();
+  }
+  const isAdmin = !!portalUser.is_admin;
+
+  document.querySelectorAll('.admin-audit-link').forEach((el) => {
+    el.hidden = !isAdmin;
+  });
+
+  const panel = document.getElementById('audit-panel');
+  if (panel && !isAdmin) {
+    panel.hidden = true;
+  }
+
+  const display = portalUser.display_name || portalUser.username || 'Admin';
+  const role = String(portalUser.role || 'ADMIN').toUpperCase();
+  const email = portalUser.email || 'admin@evolvclothing.com';
+
+  document.querySelectorAll('.evolv-user-name').forEach((el) => {
+    el.textContent = display;
+  });
+  document.querySelectorAll('.evolv-user-role').forEach((el) => {
+    el.textContent = role + ' ▾';
+  });
+  document.querySelectorAll('.evolv-dropdown-user-name').forEach((el) => {
+    el.textContent = display;
+  });
+  document.querySelectorAll('.evolv-dropdown-user-email').forEach((el) => {
+    el.textContent = email;
+  });
+
+  // Re-apply Approve button visibility after session loads
+  applyUiLockState();
+}
+
+async function syncPortalSession() {
+  try {
+    const res = await fetch('api.php?action=session');
+    const json = await res.json();
+    if (json.success && json.user) {
+      applyPortalSession(json.user);
+      return json.user;
+    }
+  } catch (err) {
+    // Keep guest UI — Audit Log stays hidden.
+  }
+  applyPortalSession({ logged_in: false, is_admin: false });
+  return null;
+}
+
+function toggleAuditPanel(forceOpen) {
+  if (!portalUser.is_admin) {
+    showToast('Audit Log is available only for live admin logins.', true);
+    return;
+  }
+  const panel = document.getElementById('audit-panel');
+  const btn = document.getElementById('btn-audit-toggle');
+  if (!panel) return;
+  const open = typeof forceOpen === 'boolean' ? forceOpen : panel.hidden;
+  panel.hidden = !open;
+  if (btn) btn.classList.toggle('active', open);
+  if (open) {
+    panel.classList.remove('audit-panel-in');
+    void panel.offsetWidth;
+    panel.classList.add('audit-panel-in');
+    loadAuditLog();
+    panel.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'nearest' });
+  }
+}
+
+function formatAuditWhen(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return String(ts);
+  return d.toLocaleString();
+}
+
+function auditStatusLabel(entry) {
+  if (!entry) return '—';
+  if (entry.approve === 'X' || entry.approve === 'x') return 'Approved';
+  if (entry.action === 'approve_save') return 'Approve save';
+  return 'Draft';
+}
+
+function auditPayloadText(entry) {
+  if (!entry || entry.payload == null) return '';
+  try {
+    return typeof entry.payload === 'string'
+      ? entry.payload
+      : JSON.stringify(entry.payload, null, 2);
+  } catch (e) {
+    return String(entry.payload);
+  }
+}
+
+function auditRowHtml(entry) {
+  const ok = !!entry.success;
+  const so = `${escapeHtml(entry.vbeln || '—')} / ${escapeHtml(entry.posnr || '—')}`;
+  const method = String(entry.method || 'POST').toUpperCase();
+  const url = entry.url || '—';
+  const http = entry.http_code || '—';
+  const payload = auditPayloadText(entry);
+  const id = `audit-payload-js-${entry.id || Math.random().toString(36).slice(2, 9)}`;
+  const payloadCell = payload
+    ? `<button type="button" class="audit-payload-btn" onclick="document.getElementById('${id}').hidden=!document.getElementById('${id}').hidden">View</button>`
+    : '—';
+  const detail = payload
+    ? `<tr id="${id}" class="audit-payload-row" hidden><td colspan="8"><div class="audit-payload-box">
+        <div class="audit-payload-meta">
+          <div><strong>Method:</strong> ${escapeHtml(method)}</div>
+          <div><strong>URL:</strong> <code>${escapeHtml(url)}</code></div>
+          <div><strong>HTTP:</strong> ${escapeHtml(String(http))}</div>
+          ${entry.csrf_url ? `<div><strong>CSRF:</strong> ${escapeHtml(String(entry.csrf_method || 'GET'))} <code>${escapeHtml(entry.csrf_url)}</code></div>` : ''}
+        </div>
+        <pre class="audit-payload-json">${escapeHtml(payload)}</pre>
+      </div></td></tr>`
+    : '';
+  return `<tr class="audit-row-enter">
+    <td>${escapeHtml(formatAuditWhen(entry.ts))}</td>
+    <td>${escapeHtml(entry.user || '—')}</td>
+    <td><span class="audit-method audit-method-${escapeHtml(method.toLowerCase())}">${escapeHtml(method)}</span></td>
+    <td class="audit-mono audit-url" title="${escapeHtml(url)}">${escapeHtml(url)}</td>
+    <td class="audit-mono">${escapeHtml(String(http))}</td>
+    <td class="audit-mono">${so}</td>
+    <td><span class="audit-result ${ok ? 'ok' : 'fail'}">${ok ? 'OK' : 'FAIL'}</span>
+      <small class="audit-msg">${escapeHtml(entry.message || entry.source || '')}</small></td>
+    <td>${payloadCell}</td>
+  </tr>${detail}`;
+}
+
+function prependAuditEntry(entry) {
+  const tbody = document.getElementById('audit-tbody');
+  if (!tbody || !entry) return;
+  const empty = tbody.querySelector('.audit-empty');
+  if (empty) tbody.innerHTML = '';
+  tbody.insertAdjacentHTML('afterbegin', auditRowHtml(entry));
+}
+
+async function loadAuditLog() {
+  const tbody = document.getElementById('audit-tbody');
+  if (!tbody) return;
+  if (!portalUser.is_admin) {
+    tbody.innerHTML = `<tr><td colspan="8" class="audit-empty">Audit Log is available only for live admin logins</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = `<tr><td colspan="8" class="audit-empty">Loading audit log…</td></tr>`;
+  try {
+    const vbeln = costData?.Vbeln || document.getElementById('hdr-vbeln')?.value.trim() || '';
+    const qs = new URLSearchParams({ action: 'audit', limit: '40' });
+    if (vbeln) qs.set('vbeln', vbeln);
+    const res = await fetch(`api.php?${qs.toString()}`);
+    const json = await res.json();
+    if (!res.ok || json.success === false) {
+      tbody.innerHTML = `<tr><td colspan="8" class="audit-empty">${escapeHtml(json.error || 'Access denied')}</td></tr>`;
+      return;
+    }
+    const rows = Array.isArray(json.data) ? json.data : [];
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="audit-empty">No save activity yet for this sheet</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = rows.map(auditRowHtml).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" class="audit-empty">Could not load audit log</td></tr>`;
+  }
+}
+
 /**
  * Initializes the page on load.
  * @returns {void}
  */
 window.addEventListener('DOMContentLoaded', () => {
+  syncPortalSession();
+
   const urlParams = new URLSearchParams(window.location.search);
   const vbeln = urlParams.get('vbeln');
   const posnr = urlParams.get('posnr') || '000010';

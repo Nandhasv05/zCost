@@ -334,6 +334,10 @@ html, body {
   flex-shrink: 0;
 }
 
+.evolv-dropdown-item.admin-audit-link[hidden] {
+  display: none !important;
+}
+
 .evolv-dropdown-item.logout {
   color: #dc2626;
   margin-top: 2px;

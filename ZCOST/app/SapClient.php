@@ -120,6 +120,135 @@ class SapClient
         ];
     }
 
+    /** Header fields allowed by ZCOSTH metadata (UI-only fields like Kwmeng must not be sent). */
+    private const HEADER_FIELDS = [
+        'Vbeln', 'Posnr', 'Sellprice', 'Making', 'Overhead', 'Markup', 'Quota', 'Commision',
+        'Nmachreq', 'Npeicbnd', 'Fincost', 'Cnv', 'Cnvf', 'Sam', 'Approve', 'Approvedby',
+        'Zzall', 'Zwast', 'Uname', 'Udate', 'Utime', 'MarkupP', 'CommVal', 'AddCost',
+        'Discount', 'Subtot',
+    ];
+
+    /**
+     * Line fields per nav entity (from ZCOST_SRV $metadata).
+     * Special (ZCOSTIS) has no Zsection / Zline / Slno — sending them causes "Property 'Zsection' is invalid".
+     */
+    private const LINE_FIELDS_BY_NAV = [
+        // zcosti
+        'to_Fabric' => [
+            'Vbeln', 'Posnr', 'Zline', 'Item', 'Maktx', 'WidSiz', 'Net', 'Wste', 'Gross',
+            'Curunit', 'Rate', 'Totalinr', 'Totalfr', 'Totalper', 'Convr', 'Fincost',
+            'Fright', 'Purp', 'Duty', 'Slno', 'Zsection', 'Zdeli', 'Uname', 'Udate', 'Utime',
+        ],
+        // ZCOSTIT
+        'to_Trim' => [
+            'Vbeln', 'Posnr', 'Zline', 'Item', 'Maktx', 'WidSiz', 'Net', 'Wste', 'Gross',
+            'Curunit', 'Rate', 'Totalinr', 'Totalfr', 'Totalper', 'Convr', 'Fright', 'Purp',
+            'Duty', 'Fincost', 'Slno', 'Zsection', 'Zdeli', 'Uname', 'Udate', 'Utime',
+        ],
+        // ZCOSTIP
+        'to_Packing' => [
+            'Vbeln', 'Posnr', 'Zline', 'Item', 'Maktx', 'WidSiz', 'Net', 'Wste', 'Gross',
+            'Curunit', 'Rate', 'Totalinr', 'Totalfr', 'Totalper', 'Convr', 'Fright', 'Purp',
+            'Duty', 'Fincost', 'Slno', 'Zsection', 'Zdeli', 'Uname', 'Udate', 'Utime',
+        ],
+        // ZCOSTIS — no Zsection / Zline / Slno
+        'to_Special' => [
+            'Vbeln', 'Posnr', 'Item', 'Maktx', 'WidSiz', 'Net', 'Wste', 'Gross',
+            'Curunit', 'Rate', 'Totalinr', 'Totalfr', 'Totalper', 'Convr', 'Fright', 'Purp',
+            'Duty', 'Fincost', 'Zdeli', 'Uname', 'Udate', 'Utime',
+        ],
+    ];
+
+    /**
+     * Strip UI-only / unknown properties so SAP does not reject the deep insert
+     * (e.g. "Property 'Kwmeng' is invalid", "Property 'Zsection' is invalid" on Special).
+     *
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function sanitizeSavePayload(array $payload): array
+    {
+        if (isset($payload['d']) && is_array($payload['d'])) {
+            $payload = $payload['d'];
+        }
+
+        $clean = [];
+        foreach (self::HEADER_FIELDS as $field) {
+            if (!array_key_exists($field, $payload)) {
+                continue;
+            }
+            $value = $payload[$field];
+            // Drop null deferred metadata blobs from GET responses
+            if (is_array($value)) {
+                continue;
+            }
+            $clean[$field] = $value;
+        }
+
+        // Ensure keys are normalized
+        if (isset($clean['Vbeln'])) {
+            $clean['Vbeln'] = $this->cleanVbeln((string)$clean['Vbeln']);
+        }
+        if (isset($clean['Posnr'])) {
+            $clean['Posnr'] = $this->cleanPosnr((string)$clean['Posnr']);
+        }
+        if (isset($clean['Approve'])) {
+            $clean['Approve'] = strtoupper(substr(trim((string)$clean['Approve']), 0, 1));
+        }
+        if (isset($clean['Approvedby'])) {
+            $clean['Approvedby'] = substr(strtoupper(trim((string)$clean['Approvedby'])), 0, 12);
+        }
+        if (isset($clean['Cnv'])) {
+            $clean['Cnv'] = substr(strtoupper(trim((string)$clean['Cnv'])), 0, 5);
+        }
+
+        foreach (self::LINE_FIELDS_BY_NAV as $navProp => $allowedFields) {
+            $rows = $payload[$navProp]['results'] ?? null;
+            if (!is_array($rows)) {
+                continue;
+            }
+            $cleanRows = [];
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $line = [];
+                foreach ($allowedFields as $field) {
+                    if (!array_key_exists($field, $row)) {
+                        continue;
+                    }
+                    $value = $row[$field];
+                    if (is_array($value)) {
+                        continue;
+                    }
+                    $line[$field] = $value;
+                }
+                if (isset($line['WidSiz'])) {
+                    $line['WidSiz'] = substr(trim((string)$line['WidSiz']), 0, 4);
+                }
+                if (isset($line['Item'])) {
+                    $line['Item'] = substr(trim((string)$line['Item']), 0, 40);
+                }
+                if (isset($line['Maktx'])) {
+                    $line['Maktx'] = substr(trim((string)$line['Maktx']), 0, 40);
+                }
+                if (isset($line['Curunit'])) {
+                    $line['Curunit'] = substr(strtoupper(trim((string)$line['Curunit'])), 0, 5);
+                }
+                if (isset($clean['Vbeln'])) {
+                    $line['Vbeln'] = $clean['Vbeln'];
+                }
+                if (isset($clean['Posnr'])) {
+                    $line['Posnr'] = $clean['Posnr'];
+                }
+                $cleanRows[] = $line;
+            }
+            $clean[$navProp] = ['results' => $cleanRows];
+        }
+
+        return $clean;
+    }
+
     /**
      * POST Costing Sheet directly to Live SAP OData service (No Local Cache / No Local Database)
      */
@@ -161,32 +290,8 @@ class SapClient
         }
         $cookieHeader = implode('; ', $cookies);
 
-        // Clean payload structure for deep insert
-        $postData = $payload;
-        if (isset($postData['d'])) {
-            $postData = $postData['d'];
-        }
-
-        // Enforce SAP DDIC field constraints on line items (ZCOST.xlsx specifications)
-        foreach (['to_Fabric', 'to_Trim', 'to_Packing', 'to_Special'] as $navProp) {
-            if (isset($postData[$navProp]['results']) && is_array($postData[$navProp]['results'])) {
-                foreach ($postData[$navProp]['results'] as &$row) {
-                    if (isset($row['WidSiz'])) {
-                        $row['WidSiz'] = substr(trim((string)$row['WidSiz']), 0, 4);
-                    }
-                    if (isset($row['Item'])) {
-                        $row['Item'] = substr(trim((string)$row['Item']), 0, 40);
-                    }
-                    if (isset($row['Maktx'])) {
-                        $row['Maktx'] = substr(trim((string)$row['Maktx']), 0, 40);
-                    }
-                    if (isset($row['Curunit'])) {
-                        $row['Curunit'] = substr(strtoupper(trim((string)$row['Curunit'])), 0, 5);
-                    }
-                }
-                unset($row);
-            }
-        }
+        // Clean payload: only ZCOSTH + nav properties from $metadata (drops Kwmeng, Matnr, __metadata, …)
+        $postData = $this->sanitizeSavePayload($payload);
 
         $jsonPayload = json_encode($postData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
@@ -220,19 +325,28 @@ class SapClient
         $postError = curl_error($chPost);
         curl_close($chPost);
 
+        $requestMeta = [
+            'method' => 'POST',
+            'url' => $postUrl,
+            'payload' => $postData,
+            'csrf_method' => 'GET',
+            'csrf_url' => $serviceRoot,
+            'csrf_http_code' => (int)$fetchCode,
+        ];
+
         if ($postHttpCode === 201 || $postHttpCode === 200) {
             $resDecoded = json_decode((string)$postRes, true);
-            return [
+            return array_merge($requestMeta, [
                 'success' => true,
                 'source' => 'LIVE_SAP',
                 'http_code' => $postHttpCode,
                 'message' => 'Successfully saved and posted to SAP ZCOST_SRV!',
-                'data' => $resDecoded['d'] ?? $postData
-            ];
+                'data' => $resDecoded['d'] ?? $postData,
+            ]);
         }
 
         // Check if SAP returned an error message in JSON
-        $errorMessage = $postError ?: "SAP returned HTTP $postHttpCode";
+        $errorMessage = $postError ?: ($fetchErr ?: "SAP returned HTTP $postHttpCode");
         if (!empty($postRes)) {
             $errDecoded = json_decode((string)$postRes, true);
             if (isset($errDecoded['error']['message']['value'])) {
@@ -240,14 +354,16 @@ class SapClient
             }
         }
 
-        return [
+        return array_merge($requestMeta, [
             'success' => false,
             'source' => 'LIVE_SAP',
+            'http_code' => $postHttpCode,
             'sap_http_code' => $postHttpCode,
             'sap_error' => $errorMessage,
+            'error' => $errorMessage,
             'message' => "SAP Save Failed: $errorMessage",
-            'data' => $postData
-        ];
+            'data' => $postData,
+        ]);
     }
 
     /**
