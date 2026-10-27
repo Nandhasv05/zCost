@@ -512,27 +512,27 @@
 
       <!-- Col 2: Making & Waste -->
       <div class="cost-form-col">
-        <label class="cost-field" title="HD_ZCOST-MAKING"><span>Making<small>MAKING</small></span><input type="text" id="form-making" value="150.000" readonly oninput="validateField(this, 'decimal', 3)" onchange="collectHeaderInputs(); recalculateAll();"></label>
-        <label class="cost-field" title="HD_ZCOST-OVERHEAD"><span>Over head<small>OVERHEAD</small></span><input type="text" id="form-overhead" value="0.000" readonly oninput="validateField(this, 'decimal', 3)" onchange="collectHeaderInputs(); recalculateAll();"></label>
-        <label class="cost-field" title="HD_ZCOST-ZWAST"><span>Garment Wast<small>ZWAST</small></span><input type="text" id="form-zwast" value="3.000" readonly oninput="validateField(this, 'percent')" onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field" title="HD_ZCOST-MAKING"><span>Making<small>MAKING</small></span><input type="text" id="form-making" value="150.000" readonly oninput="validateField(this, 'decimal', 3); collectHeaderInputs(); recalculateAll();" onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field" title="HD_ZCOST-OVERHEAD"><span>Over head<small>OVERHEAD</small></span><input type="text" id="form-overhead" value="0.000" readonly oninput="validateField(this, 'decimal', 3); collectHeaderInputs(); recalculateAll();" onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field" title="HD_ZCOST-ZWAST"><span>Garment Wast<small>ZWAST</small></span><input type="text" id="form-zwast" value="3.000" readonly oninput="validateField(this, 'percent'); collectHeaderInputs(); recalculateAll();" onchange="collectHeaderInputs(); recalculateAll();"></label>
       </div>
 
       <!-- Col 3: Markup & Commercials -->
       <div class="cost-form-col">
         <label class="cost-field" title="SUBTOT"><span>Sub total<small>SUBTOT</small></span><input type="text" id="form-subtot" value="565.5698" readonly></label>
-        <label class="cost-field" title="HD_ZCOST-MARKUP_P"><span>Markup %<small>MARKUP_P</small></span><input type="text" id="form-markupp" value="24.850" readonly oninput="validateField(this, 'percent')" onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field" title="HD_ZCOST-MARKUP_P"><span>Markup %<small>MARKUP_P</small></span><input type="text" id="form-markupp" value="24.850" readonly oninput="validateField(this, 'percent'); collectHeaderInputs(); recalculateAll();" onchange="collectHeaderInputs(); recalculateAll();"></label>
         <label class="cost-field" title="HD_ZCOST-MARKUP"><span>Mark up<small>MARKUP</small></span><input type="text" id="form-markup" value="140.54" readonly></label>
-        <label class="cost-field" title="HD_ZCOST-COMMISION"><span>Commission %<small>COMMISION</small></span><input type="text" id="form-commision" value="4.500" readonly oninput="validateField(this, 'percent')" onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field" title="HD_ZCOST-COMMISION"><span>Commission %<small>COMMISION</small></span><input type="text" id="form-commision" value="4.500" readonly oninput="validateField(this, 'percent'); collectHeaderInputs(); recalculateAll();" onchange="collectHeaderInputs(); recalculateAll();"></label>
         <label class="cost-field" title="HD_ZCOST-COMM_VAL"><span>Commission<small>COMM_VAL</small></span><input type="text" id="form-commval" value="31.78" readonly></label>
       </div>
 
       <!-- Col 4: Price & Quote (Green Highlighted Inputs) -->
       <div class="cost-form-col cost-form-price">
-        <label class="cost-field" title="HD_ZCOST-ADD_COST"><span>Additional cost<small>ADD_COST</small></span><input type="text" id="form-addcost" value="0.000" readonly oninput="validateField(this, 'decimal', 3)" onchange="collectHeaderInputs(); recalculateAll();"></label>
-        <label class="cost-field" title="HD_ZCOST-DISCOUNT"><span>Discount %<small>DISCOUNT</small></span><input type="text" id="form-discount" value="0.000" readonly oninput="validateField(this, 'percent')" onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field" title="HD_ZCOST-ADD_COST"><span>Additional cost<small>ADD_COST</small></span><input type="text" id="form-addcost" value="0.000" readonly oninput="validateField(this, 'decimal', 3); collectHeaderInputs(); recalculateAll();" onchange="collectHeaderInputs(); recalculateAll();"></label>
+        <label class="cost-field" title="HD_ZCOST-DISCOUNT"><span>Discount %<small>DISCOUNT</small></span><input type="text" id="form-discount" value="0.000" readonly oninput="validateField(this, 'percent'); collectHeaderInputs(); recalculateAll();" onchange="collectHeaderInputs(); recalculateAll();"></label>
         <label class="cost-field cost-field-strong" title="HD_ZCOST-SELLPRICE"><span>SELLING PRICE<small>SELLPRICE</small></span><input type="text" id="form-sellprice" class="calc-sellprice" value="887.89" readonly></label>
         <label class="cost-field cost-field-strong" title="QOUC"><span id="label-sellprice-fr">QOUC<small>QOUC</small></span><input type="text" id="form-sellprice-fr" value="10.21" readonly></label>
-        <label class="cost-field cost-field-strong" title="HD_ZCOST-QUOTA"><span>FINAL-QUOTE<small>QUOTA</small></span><input type="text" id="form-quota" value="11.910" readonly oninput="validateField(this, 'decimal', 3)" onchange="collectHeaderInputs()"></label>
+        <label class="cost-field cost-field-strong" title="HD_ZCOST-QUOTA"><span>FINAL-QUOTE<small>QUOTA</small></span><input type="text" id="form-quota" value="11.910" readonly oninput="validateField(this, 'decimal', 3); collectHeaderInputs();" onchange="collectHeaderInputs()"></label>
       </div>
 
     </section>
@@ -722,7 +722,7 @@
 </div>
 
 <!-- Interactive Engine -->
-<script src="public/js/sap_costing.js?v=31"></script>
+<script src="public/js/sap_costing.js?v=32"></script>
 
 </body>
 </html>

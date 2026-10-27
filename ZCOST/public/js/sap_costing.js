@@ -876,6 +876,7 @@ function collectHeaderInputs() {
   costData.Commision = parseNum(document.getElementById('form-commision')?.value).toFixed(3);
   costData.AddCost = parseNum(document.getElementById('form-addcost')?.value).toFixed(3);
   costData.Discount = parseNum(document.getElementById('form-discount')?.value).toFixed(3);
+  costData.Quota = parseNum(document.getElementById('form-quota')?.value).toFixed(3);
 }
 
 // Full Recalculation Engine
@@ -924,35 +925,60 @@ function recalculateAll() {
   });
   setTableTotals('special', specialCostSum, specialInr, specialFr, specialFinSum);
 
-  // Intermediate sub-total
-  const calculatedSubtot = fabricInr + trimInr + packingInr + specialInr;
+  // -------------------------------------------------------------
+  // SAP ABAP Costing Sheet Calculation Engine
+  // SUBTOT = TINR1 + TINR + TINR2 + WA_ZCOST_S-TOTALINR + HD_ZCOST-MAKING + HD_ZCOST-OVERHEAD
+  //          + ( ( TINR1 + TINR + TINR2 + WA_ZCOST_S-TOTALINR ) * HD_ZCOST-ZWAST * PER ).
+  // -------------------------------------------------------------
+  const materialsTotal = fabricInr + trimInr + packingInr + specialInr;
+  const making = parseNum(costData.Making);
+  const overhead = parseNum(costData.Overhead);
+  const zwast = parseNum(costData.Zwast);
+  const garmentWastage = materialsTotal * (zwast / 100);
+
+  const calculatedSubtot = materialsTotal + making + overhead + garmentWastage;
   costData.Subtot = calculatedSubtot.toFixed(4);
   setInputValue('form-subtot', num(calculatedSubtot, 4));
 
-  // Markup calculation
-  const markupP = parseNum(costData.MarkupP);
-  const markupVal = calculatedSubtot * (markupP / 100);
+  // HD_ZCOST-MARKUP = ( SUBTOT / ( 100 - HD_ZCOST-MARKUP_P ) ) * HD_ZCOST-MARKUP_P.
+  let markupP = parseNum(costData.MarkupP);
+  let markupVal = 0;
+  if (markupP > 0 && markupP < 100) {
+    markupVal = (calculatedSubtot / (100 - markupP)) * markupP;
+  } else if (markupP === 0 && parseNum(costData.Markup) > 0 && calculatedSubtot > 0) {
+    markupVal = parseNum(costData.Markup);
+    markupP = (markupVal / (calculatedSubtot + markupVal)) * 100;
+    costData.MarkupP = markupP.toFixed(3);
+    setInputValue('form-markupp', num(markupP, 3));
+  }
   costData.Markup = markupVal.toFixed(2);
   setInputValue('form-markup', num(markupVal, 2));
 
-  // Commission calculation
+  // HD_ZCOST-SELLPRICE = SUBTOT + HD_ZCOST-MARKUP.
+  const intermediateSellPrice = calculatedSubtot + markupVal;
+
+  // HD_ZCOST-COMM_VAL = ( HD_ZCOST-SELLPRICE / ( 100 - HD_ZCOST-COMMISION ) ) * HD_ZCOST-COMMISION.
   const commP = parseNum(costData.Commision);
-  const commVal = (calculatedSubtot + markupVal) * (commP / 100);
+  let commVal = 0;
+  if (commP > 0 && commP < 100) {
+    commVal = (intermediateSellPrice / (100 - commP)) * commP;
+  }
   costData.CommVal = commVal.toFixed(2);
   setInputValue('form-commval', num(commVal, 2));
 
-  // Selling Price Calculation
-  const making = parseNum(costData.Making);
-  const overhead = parseNum(costData.Overhead);
+  // HD_ZCOST-SELLPRICE = SUBTOT + HD_ZCOST-MARKUP + HD_ZCOST-COMM_VAL.
+  let sellingPrice = calculatedSubtot + markupVal + commVal;
+
+  // LV_DIS = ( HD_ZCOST-SELLPRICE * HD_ZCOST-DISCOUNT ) / 100.
   const addCost = parseNum(costData.AddCost);
   const discountP = parseNum(costData.Discount);
-  const discountVal = calculatedSubtot * (discountP / 100);
+  const lvDis = (sellingPrice * discountP) / 100;
 
-  // Selling Price = Subtot + Making + Overhead + Markup + Commission + AddCost - Discount
-  let sellingPrice = calculatedSubtot + making + overhead + markupVal + commVal + addCost - discountVal;
+  // HD_ZCOST-SELLPRICE = HD_ZCOST-SELLPRICE + HD_ZCOST-ADD_COST - LV_DIS.
+  sellingPrice = sellingPrice + addCost - lvDis;
   if (sellingPrice < 0) sellingPrice = 0;
 
-  // If user previously had a fixed Sellprice and everything else was 0, keep or respect Sellprice
+  // Preserve existing Sellprice if entire sheet is blank but existing cost header is loaded
   if (calculatedSubtot === 0 && parseNum(costData.Sellprice) > 0) {
     sellingPrice = parseNum(costData.Sellprice);
   }
@@ -960,9 +986,15 @@ function recalculateAll() {
   costData.Sellprice = sellingPrice.toFixed(3);
   setInputValue('form-sellprice', num(sellingPrice, 2));
 
-  // Sell Price in foreign currency
-  const sellPriceFr = cnvf > 0 ? (sellingPrice / cnvf) : 0;
-  setInputValue('form-sellprice-fr', num(sellPriceFr, 2));
+  // QOUC = HD_ZCOST-SELLPRICE / CNVF.
+  const qouc = cnvf > 0 ? (sellingPrice / cnvf) : 0;
+  setInputValue('form-sellprice-fr', num(qouc, 2));
+
+  // If Quota is empty, initialize it to QOUC
+  if (!costData.Quota || parseNum(costData.Quota) === 0) {
+    costData.Quota = qouc.toFixed(3);
+    setInputValue('form-quota', num(qouc, 3));
+  }
 
   paintKpi('kpi-sellprice', '₹ ' + num(sellingPrice, 2));
   paintKpi('kpi-sellprice-fr', (costData.Cnv || 'EUR') + ' ' + num(sellPriceFr, 2));
@@ -1044,7 +1076,7 @@ function toggleChangeMode() {
   });
 
   const inputsToToggle = ['form-nmachreq', 'form-npeicbnd', 'form-sam', 'form-making', 'form-overhead', 
-                          'form-zwast', 'form-markupp', 'form-commision', 'form-addcost', 'form-discount'];
+                          'form-zwast', 'form-markupp', 'form-commision', 'form-addcost', 'form-discount', 'form-quota'];
   inputsToToggle.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.readOnly = !isEditMode;
